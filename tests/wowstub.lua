@@ -173,3 +173,16 @@ OFFLINE = {}
 function UnitIsConnected(u) return not OFFLINE[u] end
 CHAT = {}
 function SendChatMessage(text, channel) CHAT[#CHAT + 1] = channel .. ": " .. text end
+
+-- experience
+MYXP = { level = 43, xp = 3000, max = 10000, rested = 1500 }
+function UnitXP() return MYXP.xp end
+function UnitXPMax() return MYXP.max end
+function UnitLevel() return MYXP.level end
+function GetXPExhaustion() return MYXP.rested end
+QUESTLOG = { { questID = 1, xp = 500, done = true }, { questID = 2, xp = 700, done = true },
+             { isHeader = true }, { questID = 3, xp = 900, done = false } }
+C_QuestLog = { GetNumQuestLogEntries = function() return #QUESTLOG end,
+               GetInfo = function(i) return QUESTLOG[i] end,
+               IsComplete = function(id) for _, q in ipairs(QUESTLOG) do if q.questID == id then return q.done end end end }
+function GetQuestLogRewardXP(id) for _, q in ipairs(QUESTLOG) do if q.questID == id then return q.xp end end return 0 end

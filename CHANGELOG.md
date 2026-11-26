@@ -1,5 +1,10 @@
 # Syncline
 
+## 0.10.0
+- EP-Übersicht der Gruppe im Gruppenfenster, für alle: pro Mitglied Stufe, ein Balken mit EP (blau), Ruhe-EP (hellblau) und den EP der abgabebereiten Quests (grün), wie viel fehlt, EP pro Stunde und die Zeit bis zum Level-Up. Reichen die abgabebereiten Quests für den Level-Up, steht dort „abgeben!“.
+- Im Tooltip jeder Zeile: EP, fehlende EP, Ruhe-EP, EP abgabebereiter Quests und aller Quests im Log, EP pro Stunde, Level-Up in … und nach den Abgaben.
+- Jeder misst seine eigenen EP (das Spiel verrät fremde nicht) und schickt sie höchstens alle 10 Sekunden. EP pro Stunde über die letzten 30 Minuten, auch über einen Level-Up hinweg. In den Einstellungen abschaltbar.
+
 ## 0.9.0
 - Bummel-Meter (nur für den Leiter): Im Gruppenfenster steht, wie lange die Gruppe auf wen gewartet hat, also die Zeit, die jemand hinter dem Schritt des Leiters war. Dazu die Zeit pro Schritt.
   - Rangliste mit Balken, Titel für den Spitzenreiter: Blumenpflücker (ab 2 Min.), Tourist (ab 10 Min.), Schnecke der Session (ab 30 Min.).

@@ -43,6 +43,7 @@ local DEFAULTS = {
     followRoute = true,    -- take the leader's RestedXP route settings (dungeons, ...)
     shareRoute = true,     -- leader: send my route settings to the group
     slackMeter = true,     -- leader: who keeps the group waiting (Slack.lua)
+    xpOverview = true,     -- experience of the group (XP.lua)
     minimapButton = true,
     minimapAngle = 200,
     locked = false,        -- windows can't be dragged
@@ -586,6 +587,8 @@ local function GuideFields(g)
     if #id + #group + #name > 230 then group, name = "", name:sub(1, 230 - #id) end
     return id, group, name
 end
+
+ns.Send = function(kind, ...) Queue(kind, ...) end
 
 local function SendStatus()
     if not GroupChannel() then return end
@@ -1154,12 +1157,15 @@ local function HandleMessage(text, sender)
         end
         Debounce("status", 1, SendStatus)
         Debounce("route", 1.2, function() SendRoute(IsLeader() and "W" or "V") end)
+        Debounce("xp", 1.5, function() if ns.XP then ns.XP:Send() end end)
     elseif kind == "S" then
         local st = Guide() or {}
         st.step, st.total, st.line = tonumber(f[6]), tonumber(f[7]), tonumber(f[8])
         st.route = statuses[who] and statuses[who].route
         statuses[who] = st
         Changed()
+    elseif kind == "X" then
+        if ns.XP then ns.XP:OnMessage(who, f) end
     elseif kind == "T" then
         local st = statuses[who] or {}
         if st.protocol then return end
@@ -1414,6 +1420,7 @@ local function OnGroupChanged()
             if GroupChannel() then return end
             leaderGuide, lastSent, lastAnnounced, pending = nil, nil, nil, nil
             leaderRoute, lastRouteSent = nil, nil
+            if ns.XP then ns.XP:Forget() end
             wipe(statuses)
             Changed()
         end)

@@ -8,6 +8,7 @@ assert(loadfile("Locale.lua"))("Syncline", ns)
 assert(loadfile("GuideMap.lua"))("Syncline", ns)
 assert(loadfile("Theme.lua"))("Syncline", ns)
 assert(loadfile("Core.lua"))("Syncline", ns)
+assert(loadfile("XP.lua"))("Syncline", ns)
 assert(loadfile("Slack.lua"))("Syncline", ns)
 assert(loadfile("GroupWindow.lua"))("Syncline", ns)
 assert(loadfile("Options.lua"))("Syncline", ns)
@@ -502,6 +503,47 @@ STATE.group = false; Slack:Tick(); NOW = NOW + 61; Slack:Tick()
 check(next(ns.db.slack.members) == nil, "reset after leaving the group")
 NOW = NOW + 1; STATE.group = true; Fire("GROUP_ROSTER_UPDATE"); RunTimers()
 SlashCmdList.SYNCLINE("")   -- close the window again
+
+---------------------------------------------------------------------------
+-- Experience overview
+---------------------------------------------------------------------------
+local XP = ns.XP
+local me = XP:Mine()
+check(me.level == 43 and me.xp == 3000 and me.max == 10000 and me.rested == 1500, "my experience")
+check(me.ready == 1200 and me.all == 2100, "quest xp: ready " .. me.ready .. ", all " .. me.all)
+check(me.rate == nil, "no rate without data")
+-- 30 minutes: 3000 -> 9500, then 500 to the level-up and 500 after it = 7500 xp
+XP:Sample()
+NOW = NOW + 600; MYXP.xp = 6000; XP:Sample()
+NOW = NOW + 600; MYXP.xp = 9500; XP:Sample()
+NOW = NOW + 600; MYXP.level, MYXP.xp, MYXP.max = 44, 500, 11000; XP:Sample()   -- +500 to the level-up, +500 after
+me = XP:Mine()
+check(math.floor(me.rate + 0.5) == 15000, "15000 xp per hour: " .. tostring(me.rate))
+local missing, t, after, t2 = XP:Times(me)
+check(missing == 10500 and after == 10500 - 1200, "missing and after turning in")
+check(math.floor(t / 60 + 0.5) == 42, "level-up in about 42 min: " .. t / 60)
+XP:Send(); RunTimers()
+check(lastSent("X^") == "X^2^44^500^11000^1500^15000^1200^2100", "sent: " .. tostring(lastSent("X^")))
+-- Bob: ready quests are enough for his level-up
+T.OnMessage("X^2^43^9000^10000^0^6500^1500^2000", "Bob Beansen")
+local bobxp = XP:Get("Bob-Beansen")
+check(bobxp and bobxp.level == 43 and bobxp.rate == 6500, "Bob's experience")
+local _, _, bobAfter = XP:Times(bobxp)
+check(bobAfter == 0, "Bob levels by turning in")
+-- the window
+if not ns.GroupWindow:IsShown() then SlashCmdList.SYNCLINE("") end
+ns.GroupWindow:Refresh()
+check(TextShown("ERFAHRUNG"), "experience card")
+check(TextShown("fehlt 10.5k") and TextShown("abgeben!"), "my missing xp and Bob's hint")
+check(TextShown("15k/h"), "rate shown")
+check(XP.Short(1200) == "1.2k" and XP.Short(950) == "950" and XP.Short(250000) == "250k" and XP.Short(2000) == "2k", "short numbers")
+-- max level
+T.OnMessage("X^2^60^0^0^0^^0^0", "Fluffy-Shocks")
+ns.GroupWindow:Refresh()
+check(TextShown("Höchststufe"), "max level")
+-- switched off
+ns.db.xpOverview = false; ns.GroupWindow:Refresh(); ns.db.xpOverview = true
+SlashCmdList.SYNCLINE("")
 
 -- the windows
 SlashCmdList.SYNCLINE(""); RunTimers()

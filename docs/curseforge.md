@@ -7,6 +7,7 @@
 - **The leader decides:** pick a guide in the RestedXP window as usual – it goes to the whole group. Whoever joins, logs in or reloads gets it too
 - **Any client language:** RestedXP names its guides differently in every language. Syncline knows they're the same guide – German, English, French, Spanish, Portuguese and Chinese clients play together
 - **Who is where:** the group window shows every player's step and how far ahead or behind the leader they are, plus the leader's step with its text
+- **Experience overview:** level, experience, rested XP and the XP of quests ready to turn in for everyone in the group, plus XP per hour and time to the next level
 - **Skip for everyone:** the leader skips a step for the whole group with one click, or pulls everyone to his step
 - **Skip check:** before you skip, Syncline shows whether follow-up quests hang on the step – green: safe to skip, orange/red: these quests would be gone for the whole group
 - **Ask for a skip:** members ask the leader to skip their step – he gets a popup and decides
