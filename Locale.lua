@@ -33,6 +33,12 @@ L.MODE_ASK = "Ask before switching."
 L.CMD_OPTIONS = "options"
 L.CMD_SKIP, L.CMD_PULL = "skip", "pull"
 L.CMD_ROUTE = "route"
+L.RISK_NONE = "no quest in it: safe to skip"
+L.RISK_SAFE = "safe to skip: no follow-up quests"
+L.RISK_FOLLOWUPS = "%d follow-up quest(s): %s"
+L.RISK_QUESTS = "Quests in this step: %s"
+L.RISK_LATER = "%d later steps belong to them"
+L.RISK_CONFIRM = "Skip %s for everyone?\n\n%s\n\nThey would be gone for the whole group."
 L.ROUTE_TAKEN = "Took %s's RestedXP route settings: %s."
 L.ROUTE_ASK = "%s (group leader) has other RestedXP route settings:\n\n%s\n\nTake them, so everyone has the same steps?"
 L.ROUTE_SENT = "Sent your RestedXP route settings to the group."
@@ -109,6 +115,12 @@ if GetLocale() == "deDE" then
     L.CMD_OPTIONS = "optionen"
     L.CMD_SKIP, L.CMD_PULL = "skippen", "herholen"
     L.CMD_ROUTE = "route"
+    L.RISK_NONE = "keine Quest darin: sicher zu skippen"
+    L.RISK_SAFE = "sicher zu skippen: keine Folgequests"
+    L.RISK_FOLLOWUPS = "%d Folgequest(s): %s"
+    L.RISK_QUESTS = "Quests in diesem Schritt: %s"
+    L.RISK_LATER = "%d spätere Schritte hängen daran"
+    L.RISK_CONFIRM = "%s für alle überspringen?\n\n%s\n\nDie fielen für die ganze Gruppe weg."
     L.ROUTE_TAKEN = "RestedXP-Routeneinstellungen von %s übernommen: %s."
     L.ROUTE_ASK = "%s (Gruppenleiter) hat andere RestedXP-Routeneinstellungen:\n\n%s\n\nÜbernehmen, damit alle die gleichen Schritte haben?"
     L.ROUTE_SENT = "Deine RestedXP-Routeneinstellungen an die Gruppe geschickt."
@@ -231,6 +243,7 @@ if GetLocale() == "deDE" then
             "Dungeons, überlevelte Schritte, Gruppenquests, Solo Self Found und EXP-Rate bestimmen, welche Schritte ein Guide hat. Mit den Einstellungen des Leiters haben alle die gleichen Schritte.",
         ["As leader: send my route settings to the group"] = "Als Leiter: meine Routeneinstellungen an die Gruppe senden",
         ["Different from the leader:"] = "Anders als beim Leiter:",
+        ["Skip check"] = "Skip-Check",
     }
     for k, v in pairs(de) do L[k] = v end
 end

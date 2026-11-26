@@ -8,6 +8,7 @@
 - **Any client language:** RestedXP names its guides differently in every language. Syncline knows they're the same guide – German, English, French, Spanish, Portuguese and Chinese clients play together
 - **Who is where:** the group window shows every player's step and how far ahead or behind the leader they are, plus the leader's step with its text
 - **Skip for everyone:** the leader skips a step for the whole group with one click, or pulls everyone to his step
+- **Skip check:** before you skip, Syncline shows whether follow-up quests hang on the step – green: safe to skip, orange/red: these quests would be gone for the whole group
 - **Ask for a skip:** members ask the leader to skip their step – he gets a popup and decides
 - **Same route settings:** dungeons, skipping overleveled steps, group quests, Solo Self Found and the EXP rate decide which steps a guide has. The leader's settings go to the group, so everyone has the same steps
 - **Suggest a guide:** pick another guide yourself and Syncline offers to suggest it to the leader. One click on *Take it*, and the whole group switches

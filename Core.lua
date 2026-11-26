@@ -418,6 +418,125 @@ end
 ns.StepText = StepText
 
 ---------------------------------------------------------------------------
+-- Safe to skip? What hangs on a step, read from the guide itself:
+-- the quests the step accepts, completes or turns in, and later steps that
+-- need them: ".isQuestTurnedIn X" conditions and quests accepted in the step
+-- that turns X in (follow-ups), and theirs in turn.
+---------------------------------------------------------------------------
+local QUEST_TAGS = { accept = true, complete = true, turnin = true }
+
+local function QuestName(id)
+    local rxp = RXP()
+    if rxp and rxp.GetQuestName then
+        local ok, name = pcall(rxp.GetQuestName, id)
+        if ok and type(name) == "string" and name ~= "" then return name end
+    end
+    if C_QuestLog and C_QuestLog.GetTitleForQuestID then
+        local ok, name = pcall(C_QuestLog.GetTitleForQuestID, id)
+        if ok and type(name) == "string" and name ~= "" then return name end
+    end
+    return "#" .. id
+end
+
+local function Elements(step)
+    return type(step) == "table" and (step.elements or step) or {}
+end
+
+-- Skipping step n of my guide: { quests = {ids}, followups = {ids}, later = n steps }
+-- level: "none" (no quest in it), "safe", "some" (1-2 follow-ups), "chain"
+local function SkipRisk(n)
+    local rxp = RXP()
+    local guide = rxp and rxp.currentGuide
+    local steps = guide and guide.steps
+    if not steps or not steps[n] then return nil end
+    local quests, isQuest = {}, {}
+    for _, e in ipairs(Elements(steps[n])) do
+        local q = type(e) == "table" and QUEST_TAGS[e.tag] and tonumber(e.questId)
+        if q and not isQuest[q] then isQuest[q] = true; quests[#quests + 1] = q end
+    end
+    if #quests == 0 then return { level = "none", quests = {}, followups = {}, later = 0 } end
+
+    -- follow-ups, a few levels deep
+    local lost, followups, queue = {}, {}, {}
+    for _, q in ipairs(quests) do lost[q] = true; queue[#queue + 1] = q end
+    local depth = 0
+    while #queue > 0 and depth < 6 do
+        depth = depth + 1
+        local nextQueue = {}
+        for _, q in ipairs(queue) do
+            for i = n + 1, #steps do
+                local es = Elements(steps[i])
+                local needsQ, turnsInQ = false, false
+                for _, e in ipairs(es) do
+                    if type(e) == "table" then
+                        if e.tag == "isQuestTurnedIn" and type(e.questIds) == "table" then
+                            for _, id in ipairs(e.questIds) do if tonumber(id) == q then needsQ = true end end
+                        elseif e.tag == "turnin" and tonumber(e.questId) == q then
+                            turnsInQ = true
+                        end
+                    end
+                end
+                if needsQ or turnsInQ then
+                    for _, e in ipairs(es) do
+                        local y = type(e) == "table" and e.tag == "accept" and tonumber(e.questId)
+                        if y and not lost[y] then
+                            lost[y] = true
+                            followups[#followups + 1] = y
+                            nextQueue[#nextQueue + 1] = y
+                        end
+                    end
+                end
+            end
+        end
+        queue = nextQueue
+    end
+
+    -- later steps that belong to a lost quest
+    local later = 0
+    for i = n + 1, #steps do
+        for _, e in ipairs(Elements(steps[i])) do
+            local ids = type(e) == "table" and (e.questIds or (e.questId and { e.questId }))
+            local hit = false
+            for _, id in ipairs(ids or {}) do if lost[tonumber(id)] then hit = true end end
+            if hit and e.tag ~= "isQuestAvailable" then later = later + 1; break end
+        end
+    end
+    local level = (#followups == 0) and "safe" or (#followups <= 2 and "some" or "chain")
+    return { level = level, quests = quests, followups = followups, later = later }
+end
+ns.SkipRisk = SkipRisk
+
+local RISK_COLOR = { none = "5cd97a", safe = "5cd97a", some = "f2b84d", chain = "db5c5c" }
+
+-- One line: "safe to skip" / "2 follow-up quests: A, B"
+local function RiskText(r)
+    if not r then return nil end
+    local c = "|cff" .. RISK_COLOR[r.level]
+    if r.level == "none" then return c .. L.RISK_NONE .. "|r" end
+    if r.level == "safe" then return c .. L.RISK_SAFE .. "|r" end
+    local names = {}
+    for i = 1, math.min(3, #r.followups) do names[i] = QuestName(r.followups[i]) end
+    local more = #r.followups > 3 and (" +" .. (#r.followups - 3)) or ""
+    return c .. L.RISK_FOLLOWUPS:format(#r.followups, table.concat(names, ", ") .. more) .. "|r"
+end
+ns.RiskText = RiskText
+
+-- Lines for a tooltip
+function ns.RiskLines(r)
+    local out = {}
+    if not r then return out end
+    out[#out + 1] = RiskText(r)
+    if #r.quests > 0 then
+        local names = {}
+        for i, q in ipairs(r.quests) do names[i] = QuestName(q) end
+        out[#out + 1] = "|cff9aa0aa" .. L.RISK_QUESTS:format(table.concat(names, ", ")) .. "|r"
+    end
+    for _, q in ipairs(r.followups) do out[#out + 1] = "  |cfff2b84d" .. QuestName(q) .. "|r" end
+    if r.later > 0 then out[#out + 1] = "|cff9aa0aa" .. L.RISK_LATER:format(r.later) .. "|r" end
+    return out
+end
+
+---------------------------------------------------------------------------
 -- Sending (waits for the end of combat, tries again when the game refuses)
 ---------------------------------------------------------------------------
 local queue = {}
@@ -720,10 +839,34 @@ local function PullToMyStep()
     Print(L.PULL_SENT, StepLabel(n))
 end
 
+-- Leader pressed "skip": ask first when follow-up quests hang on the step
+StaticPopupDialogs["SYNCLINE_SKIPRISK"] = {
+    text = "%s",
+    button1 = L.SKIP_FOR_GROUP,
+    button2 = L.NO,
+    OnAccept = function(_, d) if d then SkipForGroup(d.step, d.line) end end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+local function SkipWithCheck(n, line)
+    if not n then return SkipForGroup(n, line) end
+    local r = SkipRisk(n)
+    if r and (r.level == "some" or r.level == "chain") then
+        StaticPopup_Hide("SYNCLINE_SKIPRISK")
+        StaticPopup_Show("SYNCLINE_SKIPRISK", L.RISK_CONFIRM:format(StepLabel(n), RiskText(r)), nil,
+            { step = n, line = line })
+    else
+        SkipForGroup(n, line)
+    end
+end
+
 -- Member: ask the leader to skip my step for the group
 local function RequestSkip()
     if not GroupChannel() then return Print(L.NOT_IN_GROUP) end
-    if IsLeader() then return SkipForGroup((MyStep())) end
+    if IsLeader() then return SkipWithCheck((MyStep())) end
     local mine = Mine()
     local n, _, line = MyStep()
     if not mine or not n then return Print(L.NO_GUIDE) end
@@ -793,9 +936,10 @@ local function OnSkipRequest(n, g, from, line)
     end
     if not Same(Mine(), g) then return end   -- not my guide: nothing to skip
     local here = LocalStep(n, line)
+    local risk = RiskText(SkipRisk(here))
     StaticPopup_Hide("SYNCLINE_SKIPREQ")
-    StaticPopup_Show("SYNCLINE_SKIPREQ", L.SKIP_REQUEST_ASK:format(from, StepLabel(here)), nil,
-        { step = here, line = line, from = from })
+    StaticPopup_Show("SYNCLINE_SKIPREQ", L.SKIP_REQUEST_ASK:format(from, StepLabel(here))
+        .. (risk and ("\n\n" .. risk) or ""), nil, { step = here, line = line, from = from })
 end
 
 ---------------------------------------------------------------------------
@@ -1145,7 +1289,10 @@ function ns.Snapshot()
             if p then m.diff = p - leaderPos end
         end
     end
-    if leaderPos and snap.inTarget then snap.leaderStepText = StepText(leaderPos) end
+    if leaderPos and snap.inTarget then
+        snap.leaderStepText = StepText(leaderPos)
+        snap.leaderRisk = SkipRisk(leaderPos)
+    end
     return snap
 end
 
@@ -1186,7 +1333,7 @@ ns.Actions = {
         if db.enabled then AskLeader() end
         Changed()
     end,
-    SkipForGroup = function() SkipForGroup((MyStep())) end,
+    SkipForGroup = function() SkipWithCheck((MyStep())) end,
     SendRoute = function()
         if not IsLeader() then return Print(L.NOT_LEADER) end
         SendRoute("W")
@@ -1332,7 +1479,7 @@ end
 ns.test = {
     OnMessage = OnMessage, CheckGuide = CheckGuide, CurrentGuide = CurrentGuide, GuideID = GuideID,
     queue = queue, statuses = statuses, MyStep = MyStep, Mine = Mine, Overlap = Overlap,
-    IndexForLine = IndexForLine, StepLine = StepLine,
+    IndexForLine = IndexForLine, StepLine = StepLine, SkipRisk = SkipRisk,
     CheckRoute = CheckRoute,
     leaderGuide = function() return leaderGuide end,
 }

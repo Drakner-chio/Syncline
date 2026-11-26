@@ -401,6 +401,58 @@ RXP.currentGuide = full
 STATE.me = "Leader"
 RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
 
+---------------------------------------------------------------------------
+-- Safe to skip?
+---------------------------------------------------------------------------
+local function E(tag, id) return { tag = tag, questId = id } end
+QNAMES = { [100] = "Ärger am Fluss", [101] = "Die Spur der Räuber", [102] = "Das Lager", [103] = "Der Anführer", [200] = "Kräuter sammeln" }
+RXP.GetQuestName = function(id) return QNAMES[id] end
+local chain = { group = DE, name = "43-44 Flusslande II", guideId = 5000, steps = {
+    { stepId = 5003, elements = { E("accept", 100) } },                                      -- 1
+    { stepId = 5006, elements = { E("complete", 100) } },                                    -- 2
+    { stepId = 5009, elements = { E("turnin", 100), E("accept", 101) } },                    -- 3
+    { stepId = 5012, elements = { E("complete", 101) } },                                    -- 4
+    { stepId = 5015, elements = { E("turnin", 101), E("accept", 102) } },                    -- 5
+    { stepId = 5018, elements = { { tag = "isQuestTurnedIn", questIds = { 102 } }, E("accept", 103) } }, -- 6
+    { stepId = 5021, elements = { E("accept", 200) } },                                      -- 7
+    { stepId = 5024, elements = { E("complete", 200) } },                                    -- 8
+    { stepId = 5027, elements = { E("turnin", 200) } },                                      -- 9
+    { stepId = 5030, elements = { { text = "Lauft zum Lager" } } },                          -- 10
+} }
+RXP.currentGuide = chain
+RXPCData.currentGuideGroup, RXPCData.currentGuideName = DE, "43-44 Flusslande II"
+local r2 = ns.SkipRisk(2)
+check(r2.level == "chain" and #r2.followups == 3, "chain behind A: " .. r2.level .. " " .. #r2.followups)
+check(ns.RiskText(r2):find("3 Folgequest(s): Die Spur der Räuber, Das Lager, Der Anführer", 1, true), "names: " .. ns.RiskText(r2))
+local r5 = ns.SkipRisk(5)
+check(r5.level == "some" and r5.followups[1] == 103, "turn-in step: one follow-up via isQuestTurnedIn")
+check(ns.SkipRisk(8).level == "safe", "single quest: safe")
+check(ns.RiskText(ns.SkipRisk(8)):find("sicher zu skippen", 1, true), "safe text")
+check(ns.SkipRisk(10).level == "none", "travel step: no quest")
+-- leader skips a risky step: asked first
+RXP.SetStep(2)
+local np = #POPUPS
+ns.Actions.SkipForGroup(); RunTimers()
+check(#POPUPS == np + 1 and POPUPS[#POPUPS].which == "SYNCLINE_SKIPRISK", "risky skip asks first")
+check(POPUPS[#POPUPS].text:find("Folgequest", 1, true), "popup shows the follow-ups")
+local k0 = lastSent("K^")
+StaticPopupDialogs.SYNCLINE_SKIPRISK.OnAccept(nil, POPUPS[#POPUPS].data); RunTimers()
+check(lastSent("K^") ~= k0 and lastSent("K^"):find("^K%^2%^2%^"), "skipped after OK: " .. tostring(lastSent("K^")))
+-- a safe step goes straight away
+RXP.SetStep(8); np = #POPUPS
+ns.Actions.SkipForGroup(); RunTimers()
+check(#POPUPS == np and lastSent("K^"):find("^K%^2%^8%^"), "safe skip without asking")
+-- a member asks: the popup has the check in it
+T.OnMessage("R^2^4^" .. (T.Mine().id or "") .. "^" .. DE .. "^43-44 Flusslande II^12", "Bob Beansen")
+check(POPUPS[#POPUPS].which == "SYNCLINE_SKIPREQ" and POPUPS[#POPUPS].text:find("Folgequest", 1, true), "request popup with check")
+-- the window shows it for the leader's step
+RXP.SetStep(2)
+if not ns.GroupWindow:IsShown() then SlashCmdList.SYNCLINE("") end
+ns.GroupWindow:Refresh(); RunTimers()
+check(TextShown("3 Folgequest(s)"), "window: skip check line")
+SlashCmdList.SYNCLINE("")   -- close again
+RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
+
 -- the windows
 SlashCmdList.SYNCLINE(""); RunTimers()
 check(SynclineGroupFrame:IsShown(), "/sl opens the group window")

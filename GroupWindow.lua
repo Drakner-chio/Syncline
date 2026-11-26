@@ -11,8 +11,8 @@ local W = {}
 ns.GroupWindow = W
 
 local W_WIDTH, PAD, ROW_H, MAX_ROWS = 400, 12, 22, 10
-local GUIDE_H = 84
-local frame, guideCard, guideText, stepText, membersCard, moreText, emptyText
+local GUIDE_H = 102
+local frame, guideCard, guideText, stepText, riskText, membersCard, moreText, emptyText
 local rows = {}
 local buttons = {}
 
@@ -103,6 +103,10 @@ local function Build()
     stepText:SetPoint("TOPLEFT", 20, -56)
     stepText:SetPoint("RIGHT", -12, 0)
     stepText:SetWordWrap(false)
+    riskText = T.Text(guideCard, "", 12, C.muted, true)
+    riskText:SetPoint("TOPLEFT", 20, -74)
+    riskText:SetPoint("RIGHT", -12, 0)
+    riskText:SetWordWrap(false)
 
     membersCard = T.Card(frame, "Who is in which guide", PAD, -40 - GUIDE_H - 8, cw, 100)
     emptyText = T.Text(membersCard, "", 12, C.muted, true)
@@ -115,6 +119,15 @@ local function Build()
     -- leader
     Button("skip", "Skip step", "Skips the leader's current step for everyone who is at it.",
         function() ns.Actions.SkipForGroup() end, true)
+    -- skip check in the tooltip
+    buttons.skip:HookScript("OnEnter", function(self)
+        local snap = ns.Snapshot()
+        if not snap.leaderRisk then return end
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(L["Skip check"], C.muted[1], C.muted[2], C.muted[3])
+        for _, line in ipairs(ns.RiskLines(snap.leaderRisk)) do GameTooltip:AddLine(line, 1, 1, 1, true) end
+        GameTooltip:Show()
+    end)
     Button("pull", "Pull to my step", "Everyone in the group guide jumps to your step.",
         function() ns.Actions.PullToMyStep() end, false)
     Button("send", "Send guide", "Sends your guide to the whole group once more, e.g. when someone switched away.",
@@ -148,11 +161,14 @@ function W:Refresh()
             local line = L["Leader's step"] .. ": |cffffffff" .. snap.leaderStep .. "/" .. total .. "|r"
             if snap.leaderStepText then line = line .. "  ·  " .. snap.leaderStepText end
             stepText:SetText(line)
+            riskText:SetText(ns.RiskText(snap.leaderRisk) or "")
         else
             stepText:SetText("")
+            riskText:SetText("")
         end
     else
         guideText:SetText(snap.mine or ("|cff9aa0aa" .. L["no guide loaded"] .. "|r"))
+        riskText:SetText(snap.myStep and ns.RiskText(ns.SkipRisk(snap.myStep)) or "")
         stepText:SetText(snap.myStep and (L.STEP_OF:format(snap.myStep, snap.myTotal or 0)
             .. (ns.StepText(snap.myStep) and ("  ·  " .. ns.StepText(snap.myStep)) or "")) or "")
     end

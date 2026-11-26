@@ -1,5 +1,11 @@
 # Syncline
 
+## 0.8.0
+- Skip-Check: Syncline zeigt, ob ein Schritt sicher übersprungen werden kann. Es liest aus dem Guide, welche Quests der Schritt betrifft und welche Folgequests daran hängen (Bedingungen wie „nur wenn Quest X abgegeben“ und Quests, die bei der Abgabe angenommen werden, mehrere Ebenen tief).
+  - Grün „sicher zu skippen“: keine Folgequests. Orange: 1–2 Folgequests. Rot: eine längere Kette.
+  - Steht im Gruppenfenster unter dem Schritt des Leiters, im Tooltip von „Schritt skippen“ (mit allen Folgequests) und im Skip-Anfrage-Popup.
+  - Hängen Folgequests am Schritt, fragt Syncline den Leiter vor dem Skip für alle noch einmal nach.
+
 ## 0.7.1
 - Schritte werden über ihre Zeile im Guide abgeglichen statt über ihre Nummer. RestedXP lässt Schritte für andere Klassen und Rassen weg, darum hat jede Klasse eine andere Zählung (z. B. 58/157 und 58/156). Skip, „Alle zu mir“, Skip-Anfragen und die Abstandsanzeige stimmen jetzt auch bei gemischten Klassen.
 - Fehlt jemandem der Schritt (andere Klasse), landet er beim nächsten Schritt, den er hat.
