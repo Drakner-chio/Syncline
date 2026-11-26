@@ -1,0 +1,16 @@
+package-as: Syncline
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+# No libraries and no externals: building a release downloads nothing.
+
+required-dependencies:
+  - rxp-guides          # RestedXP Guides (CurseForge slug, bitte prüfen)
+
+ignore:
+  - README.md
+  - tests
+  - tools
+  - media/icon-400.png

@@ -1,0 +1,8 @@
+<Bindings>
+    <Binding name="SYNCLINE_SKIP" header="SYNCLINE" category="ADDONS">
+        Syncline_Skip()
+    </Binding>
+    <Binding name="SYNCLINE_WINDOW" category="ADDONS">
+        Syncline_ToggleWindow()
+    </Binding>
+</Bindings>

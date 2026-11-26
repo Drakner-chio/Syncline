@@ -1,0 +1,28 @@
+name: Update GuideMap
+
+# Once a day: rebuild GuideMap.lua from the current RestedXP guides and commit
+# it when something changed (new guides, renamed guides, new translations).
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  guidemap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild
+        run: |
+          git clone --depth 1 https://github.com/RestedXP/RXPGuides.git /tmp/RXPGuides
+          python3 tools/build_guidemap.py /tmp/RXPGuides > GuideMap.lua
+      - name: Commit when changed
+        run: |
+          if git diff --quiet GuideMap.lua; then echo "GuideMap unchanged"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "GuideMap: RestedXP guides updated"
+          git push

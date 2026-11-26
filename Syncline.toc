@@ -1,0 +1,21 @@
+## Interface: 16001
+## Title: |cff4fc3f7Syncline|r
+## Notes: Keeps your group in the same RestedXP guide: the group leader picks, everyone follows.
+## Notes-deDE: Hält die Gruppe im selben RestedXP-Guide: der Gruppenleiter wählt, alle ziehen mit.
+## Author: Drakner-chio
+## Version: @project-version@
+## Dependencies: RXPGuides
+## IconTexture: Interface\AddOns\Syncline\media\Logo
+## SavedVariables: SynclineDB
+## AddonCompartmentFunc: Syncline_OnCompartmentClick
+## AddonCompartmentFuncOnEnter: Syncline_OnCompartmentEnter
+## AddonCompartmentFuncOnLeave: Syncline_OnCompartmentLeave
+## X-License: MIT
+## X-Category: Quests
+
+Locale.lua
+GuideMap.lua
+Theme.lua
+Core.lua
+GroupWindow.lua
+Options.lua

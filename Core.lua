@@ -1,0 +1,920 @@
+-- Syncline: the group leader picks a RestedXP guide, everyone in the group
+-- loads the same one.
+--
+-- Messages (prefix "Syncline", fields split by ^):
+--   G^<protocol>^<id>^<group>^<name>   leader: this is our guide
+--   Q^<protocol>                       please tell me: leader sends G, everyone sends S
+--   S^<protocol>^<id>^<group>^<name>   this is the guide I have loaded (for /sl)
+--   P^<protocol>^<id>^<group>^<name>   member to leader: how about this guide?
+--   N^<protocol>^<player>^<what>       leader: no to <player>'s suggestion (P) or skip request (R)
+--   T^<protocol>^<step>^<total>        my step in my guide changed
+--   K^<protocol>^<step>^<id>^<group>^<name>   leader: everyone at <step> of this guide skips it
+--   J^<protocol>^<step>^<id>^<group>^<name>   leader: everyone in this guide jumps to <step>
+--   R^<protocol>^<step>^<id>^<group>^<name>   member to leader: please skip <step> for the group
+-- S also carries ^<step>^<total> at the end. Steps are counted the same way in
+-- every language (each translation has the same steps in the same order).
+-- <group>/<name> are RestedXP's guide group and guide name, the same pair it
+-- keeps in RXPCData.currentGuideGroup / currentGuideName. They depend on the
+-- client language (a German client loads RestedXP's German guides), so <id>
+-- names the guide the same way in every language (GuideMap.lua); it is empty
+-- for guides GuideMap doesn't know, then group/name have to match.
+
+local ADDON, ns = ...
+local L = ns.L
+
+local PREFIX = "Syncline"
+local PROTOCOL = 2
+local SEP = "^"
+local CHAT_PREFIX = (ns.Theme and ns.Theme.CHAT_PREFIX or "|cff4fc3f7Syncline|r") .. ": "
+
+ns.VERSION = (C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata(ADDON, "Version")) or "dev"
+if ns.VERSION:find("@", 1, true) then ns.VERSION = "dev" end
+
+local DEFAULTS = {
+    enabled = true,        -- follow the leader's guide
+    mode = "auto",         -- "auto": switch right away, "ask": popup first
+    offerSuggest = true,   -- picked another guide myself: offer to suggest it
+    followSteps = true,    -- the leader may skip steps for me / pull me to his step
+    minimapButton = true,
+    minimapAngle = 200,
+    locked = false,        -- windows can't be dragged
+    windowScale = 1,       -- size of the group window
+}
+
+local db
+local leaderGuide          -- { id, group, name, from } last guide the leader sent
+local statuses = {}        -- [player] = { id, group, name, step, total }
+local lastSeen             -- "group^name" of my loaded guide when last checked
+local lastSent             -- "group^name" the leader sent last
+local applying = false     -- I'm loading the leader's guide right now
+local pending              -- leader guide waiting for the end of combat
+local wasInGroup = false
+local pendingStep          -- step to go to after combat
+local timers = {}
+local debug = false        -- /sl debug: show every message
+
+---------------------------------------------------------------------------
+-- Helpers
+---------------------------------------------------------------------------
+local function Print(text, ...)
+    if select("#", ...) > 0 then text = text:format(...) end
+    print(CHAT_PREFIX .. text)
+end
+
+-- Runs fn after delay; another call with the same key replaces the waiting one
+local function Debounce(key, delay, fn)
+    timers[key] = (timers[key] or 0) + 1
+    local id = timers[key]
+    C_Timer.After(delay, function()
+        if timers[key] == id then fn() end
+    end)
+end
+
+-- Something the windows show has changed
+local function Changed()
+    Debounce("ui", 0.1, function()
+        if ns.GroupWindow then ns.GroupWindow:Refresh() end
+    end)
+end
+ns.Changed = Changed
+
+local function Clean(s)
+    return (tostring(s or ""):gsub("[%^%c]", ""))
+end
+
+local function Split(text)
+    local out = {}
+    for field in (text .. SEP):gmatch("(.-)%" .. SEP) do out[#out + 1] = field end
+    return out
+end
+
+local function Key(group, name) return (group or "") .. SEP .. (name or "") end
+
+-- Names without realm. Addon messages come as "Name-Realm" or just "Name"
+-- (same realm), unit names with or without realm depending on the client, so
+-- everything about players is keyed by the bare name.
+-- Midnight/Forever can hand out unit names as secret values: those can't be
+-- compared or used as table keys, so they count as unknown.
+local function Plain(v)
+    if issecretvalue and issecretvalue(v) then return nil end
+    return v
+end
+
+local function Bare(name)
+    name = Plain(name)
+    if type(name) ~= "string" then return nil end
+    return (name:match("^([^-]+)") or name)
+end
+
+local function IsMe(name)
+    return Bare(name) == Bare(UnitName("player"))
+end
+
+local function GroupChannel()
+    if IsInGroup and LE_PARTY_CATEGORY_INSTANCE and IsInGroup(LE_PARTY_CATEGORY_INSTANCE)
+        and not IsInGroup(LE_PARTY_CATEGORY_HOME) then
+        return "INSTANCE_CHAT"
+    end
+    if IsInRaid() then return "RAID" end
+    if IsInGroup() then return "PARTY" end
+end
+
+local function IsLeader() return GroupChannel() ~= nil and UnitIsGroupLeader("player") end
+
+local function GroupUnits()
+    local units = {}
+    if IsInRaid() then
+        for i = 1, GetNumGroupMembers() do units[#units + 1] = "raid" .. i end
+    else
+        units[1] = "player"
+        for i = 1, GetNumSubgroupMembers() do units[#units + 1] = "party" .. i end
+    end
+    return units
+end
+
+-- Is this sender the group leader? UnitIsGroupLeader takes player names, which
+-- works even when unit names are secret; try the spellings a sender can have.
+local function IsLeaderName(name)
+    if type(name) ~= "string" then return false end
+    local tries = { name, Bare(name) }
+    if Ambiguate then
+        tries[#tries + 1] = Ambiguate(name, "none")
+        tries[#tries + 1] = Ambiguate(name, "short")
+    end
+    for _, n in ipairs(tries) do
+        local ok, res = pcall(UnitIsGroupLeader, n)
+        if ok and Plain(res) then return true end
+    end
+    -- last resort: by unit, skipping names we aren't allowed to read
+    local bare = Bare(name)
+    for _, unit in ipairs(GroupUnits()) do
+        if Bare(UnitName(unit)) == bare then return Plain(UnitIsGroupLeader(unit)) and true or false end
+    end
+    return false
+end
+
+---------------------------------------------------------------------------
+-- RestedXP
+---------------------------------------------------------------------------
+local function RXP()
+    local ace = LibStub and LibStub("AceAddon-3.0", true)
+    local rxp = ace and ace:GetAddon("RXPGuides", true) or _G.RXP
+    if type(rxp) == "table" and rxp.GetGuideTable and rxp.LoadGuide then return rxp end
+end
+
+-- The guide I have loaded: group, name (nil when none)
+local function CurrentGuide()
+    local data = _G.RXPCData
+    if not data then return end
+    local group, name = data.currentGuideGroup, data.currentGuideName
+    if not group or group == "" or not name or name == "" then return end
+    return group, name
+end
+
+-- RestedXP keys guides as "01-06 Durotar" but the guide files say "1-6 Durotar"
+local function Unaffix(name)
+    return (name:gsub("^0(%d)%-0?(%d%d?)", "%1-%2"))
+end
+
+local function Lookup(group, name)
+    local rxp = RXP()
+    if not rxp or not group or not name then return end
+    return rxp.GetGuideTable(group, name) or rxp.GetGuideTable(group, Unaffix(name))
+end
+
+-- GuideMap: [id] = { enUS = { group, name }, deDE = ... }  ->  [group^name] = id
+local idByKey = {}
+for id, langs in pairs(ns.GuideMap or {}) do
+    for _, gn in pairs(langs) do
+        idByKey[Key(gn[1], gn[2])] = id
+        idByKey[Key(gn[1], Unaffix(gn[2]))] = id
+    end
+end
+
+local function GuideID(group, name)
+    if not group then return nil end
+    return idByKey[Key(group, name)] or idByKey[Key(group, Unaffix(name))]
+end
+
+-- The guide the leader means, as it is called on my client: guide table, group, name
+local function Resolve(g)
+    local langs = g.id and ns.GuideMap and ns.GuideMap[g.id]
+    if langs then
+        local mine = langs[GetLocale()]
+        local order = { mine, langs.enUS }
+        for _, gn in pairs(langs) do order[#order + 1] = gn end
+        for _, gn in pairs(order) do
+            local guide = gn and Lookup(gn[1], gn[2])
+            if guide then return guide, guide.group or gn[1], guide.name or gn[2] end
+        end
+    end
+    local guide = Lookup(g.group, g.name)
+    if guide then return guide, guide.group or g.group, guide.name or g.name end
+    -- same guide name in another group (e.g. a renamed group)
+    local rxp = RXP()
+    if rxp and type(rxp.guides) == "table" and g.name then
+        for _, guide in pairs(rxp.guides) do
+            if type(guide) == "table" and (guide.name == g.name or guide.name == Unaffix(g.name)) and guide.group then
+                return guide, guide.group, guide.name
+            end
+        end
+    end
+end
+
+-- a, b: { id, group, name }
+local function Same(a, b)
+    if not a or not b then return false end
+    if a.id and b.id then return a.id == b.id end
+    return Key(a.group, a.name) == Key(b.group, b.name)
+end
+
+local function Mine()
+    local group, name = CurrentGuide()
+    if not group then return nil end
+    return { id = GuideID(group, name), group = group, name = name }
+end
+
+local function GuideLabel(g)
+    if not g then return "-" end
+    local guide = Resolve(g)
+    local label = guide and (guide.displayname or guide.title or guide.name) or g.name or "?"
+    return (tostring(label):gsub("\n", " "))
+end
+
+-- My step in my guide: step, total (nil without a guide)
+local function MyStep()
+    local rxp = RXP()
+    local guide = rxp and rxp.currentGuide
+    if not guide or not guide.steps or not CurrentGuide() then return end
+    local ok, step = pcall(rxp.GetGuideProgress)
+    step = ok and tonumber(step) or tonumber(_G.RXPCData and RXPCData.currentStep)
+    if not step then return end
+    return step, #guide.steps
+end
+
+-- What step n of my guide says, short and without colors and icons
+local function StepText(n)
+    local rxp = RXP()
+    local guide = rxp and rxp.currentGuide
+    local step = guide and guide.steps and guide.steps[n]
+    if not step then return nil end
+    for _, e in ipairs(step.elements or step) do
+        local t = type(e) == "table" and (e.text or e.tooltipText)
+        if type(t) == "string" and t:find("%S") then
+            t = t:gsub("|T.-|t", ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cRXP_[%u_]-_", "")
+                 :gsub("|r", ""):gsub("^[%s>]+", ""):gsub("%s+", " ")
+            if #t > 70 then t = t:sub(1, 67) .. "..." end
+            return t
+        end
+    end
+end
+ns.StepText = StepText
+
+---------------------------------------------------------------------------
+-- Sending (waits for the end of combat, tries again when the game refuses)
+---------------------------------------------------------------------------
+local queue = {}
+local pumping = false
+
+local function SendNow(text, channel)
+    local send = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
+    if not send then return true end
+    local ok, res = pcall(send, PREFIX, text, channel)
+    if not ok then return false end
+    -- older clients return nothing, newer ones true or a result code (0 = sent)
+    return res == nil or res == true or res == 0
+end
+
+local function Pump()
+    if #queue == 0 then pumping = false return end
+    pumping = true
+    if InCombatLockdown() then pumping = false return end   -- PLAYER_REGEN_ENABLED restarts it
+    local channel = GroupChannel()
+    if not channel then wipe(queue); pumping = false return end
+    local msg = queue[1]
+    if SendNow(msg.text, channel) then
+        table.remove(queue, 1)
+        C_Timer.After(0.2, Pump)
+    else
+        msg.tries = (msg.tries or 0) + 1
+        if msg.tries > 20 then table.remove(queue, 1) end
+        C_Timer.After(1.5, Pump)
+    end
+end
+
+-- A newer message of the same kind replaces one that is still waiting
+local function Queue(kind, ...)
+    local text = table.concat({ kind, PROTOCOL, ... }, SEP)
+    if #text > 255 then return end
+    for i = #queue, 1, -1 do
+        if queue[i].kind == kind then table.remove(queue, i) end
+    end
+    queue[#queue + 1] = { kind = kind, text = text }
+    if not pumping then Pump() end
+end
+
+local function GuideFields(g)
+    if not g then return "", "", "" end
+    local id, group, name = Clean(g.id), Clean(g.group), Clean(g.name)
+    if #id + #group + #name > 230 then group, name = "", name:sub(1, 230 - #id) end
+    return id, group, name
+end
+
+local function SendStatus()
+    if not GroupChannel() then return end
+    local id, group, name = GuideFields(Mine())
+    local step, total = MyStep()
+    Queue("S", id, group, name, step or "", total or "")
+end
+
+local function SendStep()
+    if not GroupChannel() then return end
+    local step, total = MyStep()
+    if step then Queue("T", step, total) end
+end
+
+local function SendGuide(manual)
+    if not IsLeader() then
+        if manual then Print(L.NOT_LEADER) end
+        return
+    end
+    local mine = Mine()
+    if not mine then
+        if manual then Print(L.NO_GUIDE) end
+        return
+    end
+    lastSent = Key(mine.group, mine.name)
+    mine.from = UnitName("player")
+    leaderGuide = mine
+    Queue("G", GuideFields(mine))
+    Print(L.SENT, GuideLabel(mine))
+end
+
+local function AskLeader()
+    if GroupChannel() then Queue("Q") end
+end
+
+---------------------------------------------------------------------------
+-- Following the leader
+---------------------------------------------------------------------------
+local function Apply(g)
+    local rxp = RXP()
+    if not rxp then return end
+    if Same(Mine(), g) then return end
+    local label = GuideLabel(g)
+
+    if InCombatLockdown() then
+        if not pending then Print(g.suggested and L.TAKE_LATER or L.SWITCH_LATER, g.from, label) end
+        pending = g
+        return
+    end
+    pending = nil
+
+    local guide, group, name = Resolve(g)
+    if not guide then
+        Print(L.MISSING, g.from, g.name or g.id)
+        SendStatus()
+        return
+    end
+
+    applying = true
+    local ok, err = pcall(rxp.LoadGuide, rxp, guide)
+    lastSeen = Key(CurrentGuide())
+    applying = false
+    Changed()
+    if not ok then geterrorhandler()(err) end
+
+    if Key(CurrentGuide()) == Key(group, name) or Same(Mine(), g) then
+        if g.suggested then
+            Print(L.TAKEN, g.from, label)
+        else
+            Print(L.SWITCHED, g.from, label)
+        end
+        -- a leader taking a suggestion: send it to everyone
+        if IsLeader() then lastSent = nil; Debounce("send", 0.3, SendGuide) end
+    else
+        Print(L.NOT_LOADED, label)
+    end
+    SendStatus()
+end
+
+StaticPopupDialogs["SYNCLINE_SWITCH"] = {
+    text = "%s",
+    button1 = L.YES,
+    button2 = L.NO,
+    OnAccept = function(_, g) if g then Apply(g) end end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+-- Leader: someone suggests a guide
+StaticPopupDialogs["SYNCLINE_SUGGEST"] = {
+    text = "%s",
+    button1 = L.TAKE,
+    button2 = L.NO,
+    OnAccept = function(_, g) if g then Apply(g) end end,
+    OnCancel = function(_, g, reason)
+        if g and reason == "clicked" and GroupChannel() then Queue("N", Clean(g.from)) end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+local function OnSuggestion(g)
+    if not IsLeader() then
+        Print(L.SUGGESTED_INFO, g.from, GuideLabel(g))
+        return
+    end
+    if Same(Mine(), g) then return end
+    if not Resolve(g) then
+        Print(L.MISSING, g.from, g.name or g.id)
+        return
+    end
+    g.suggested = true
+    StaticPopup_Hide("SYNCLINE_SUGGEST")
+    StaticPopup_Show("SYNCLINE_SUGGEST", L.SUGGEST_ASK:format(g.from, GuideLabel(g)), nil, g)
+end
+
+-- Member: suggest my guide to the leader
+local function Suggest()
+    if not GroupChannel() then return Print(L.NOT_IN_GROUP) end
+    if IsLeader() then lastSent = nil; return SendGuide(true) end
+    local mine = Mine()
+    if not mine then return Print(L.NO_GUIDE) end
+    Queue("P", GuideFields(mine))
+    Print(L.SUGGEST_SENT, GuideLabel(mine))
+end
+
+-- Member: I just picked another guide myself, suggest it?
+StaticPopupDialogs["SYNCLINE_OFFER"] = {
+    text = "%s",
+    button1 = L.SUGGEST,
+    button2 = L.NO,
+    OnAccept = function() Suggest() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+local function OnLeaderGuide(g)
+    leaderGuide = g
+    if not db.enabled then return SendStatus() end
+    if Same(Mine(), g) then return SendStatus() end
+    if db.mode == "ask" then
+        StaticPopup_Hide("SYNCLINE_SWITCH")
+        local text = L.ASK:format(g.from, GuideLabel(g))
+        StaticPopup_Show("SYNCLINE_SWITCH", text, nil, g)
+    else
+        Apply(g)
+    end
+end
+
+-- Did my guide change? Leaders send it to the group, members tell the group
+-- what they have now.
+local function CheckGuide()
+    local key = Key(CurrentGuide())
+    if key == lastSeen or applying then return end
+    lastSeen = key
+    Changed()
+    if not GroupChannel() then return end
+    if IsLeader() then
+        if key ~= lastSent then Debounce("send", 0.5, SendGuide) end
+    else
+        Debounce("status", 1, SendStatus)
+        if db.enabled and leaderGuide and not Same(Mine(), leaderGuide) then
+            Print(L.LEFT_GROUP_GUIDE)
+            local mine = Mine()
+            if mine and db.offerSuggest then
+                StaticPopup_Hide("SYNCLINE_OFFER")
+                StaticPopup_Show("SYNCLINE_OFFER", L.OFFER_ASK:format(GuideLabel(mine)))
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------
+-- Steps
+---------------------------------------------------------------------------
+-- Go to step n of my guide (after combat when in combat)
+local function GoToStep(n)
+    local rxp = RXP()
+    local _, total = MyStep()
+    if not rxp or not total then return end
+    n = math.max(1, math.min(n, total))
+    if InCombatLockdown() then
+        pendingStep = n
+        return
+    end
+    pendingStep = nil
+    local ok, err = pcall(rxp.SetStep, n)
+    if not ok then geterrorhandler()(err) end
+    Changed()
+end
+
+local function StepLabel(n)
+    local text = StepText(n)
+    return text and L.STEP_WITH_TEXT:format(n, text) or L.STEP_N:format(n)
+end
+
+-- Leader: skip step n for the whole group (me too, when I'm at it)
+local function SkipForGroup(n)
+    if not IsLeader() then return Print(L.NOT_LEADER) end
+    local mine = Mine()
+    if not mine or not n then return Print(L.NO_GUIDE) end
+    Queue("K", n, GuideFields(mine))
+    Print(L.SKIPPED_SENT, StepLabel(n))
+    if MyStep() == n then GoToStep(n + 1) end
+end
+
+-- Leader: everyone in my guide to my step
+local function PullToMyStep()
+    if not IsLeader() then return Print(L.NOT_LEADER) end
+    local mine, n = Mine(), MyStep()
+    if not mine or not n then return Print(L.NO_GUIDE) end
+    Queue("J", n, GuideFields(mine))
+    Print(L.PULL_SENT, StepLabel(n))
+end
+
+-- Member: ask the leader to skip my step for the group
+local function RequestSkip()
+    if not GroupChannel() then return Print(L.NOT_IN_GROUP) end
+    if IsLeader() then return SkipForGroup((MyStep())) end
+    local mine, n = Mine(), MyStep()
+    if not mine or not n then return Print(L.NO_GUIDE) end
+    Queue("R", n, GuideFields(mine))
+    Print(L.SKIP_REQUEST_SENT, StepLabel(n))
+end
+
+-- Member: the leader wants me to go to step n (skip: from n to n + 1)
+local function OnLeaderStep(kind, n, from)
+    if not db.enabled or not db.followSteps then return end
+    local cur = MyStep()
+    if not cur then return end
+    local target, text
+    if kind == "K" then
+        if cur ~= n then
+            Print(L.SKIPPED_ELSEWHERE, from, StepLabel(n), cur)
+            return
+        end
+        target, text = n + 1, L.SKIPPED_BY_LEADER:format(from, StepLabel(n))
+    else
+        if cur == n then return end
+        target, text = n, L.PULLED_BY_LEADER:format(from, StepLabel(n))
+    end
+    if db.mode == "ask" then
+        StaticPopup_Hide("SYNCLINE_STEP")
+        StaticPopup_Show("SYNCLINE_STEP", text .. "\n\n" .. L.OK_QUESTION, nil, { step = target })
+    else
+        GoToStep(target)
+        Print(text)
+    end
+end
+
+StaticPopupDialogs["SYNCLINE_STEP"] = {
+    text = "%s",
+    button1 = L.YES_STEP,
+    button2 = L.NO,
+    OnAccept = function(_, d) if d then GoToStep(d.step) end end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+-- Leader: someone asks to skip a step
+StaticPopupDialogs["SYNCLINE_SKIPREQ"] = {
+    text = "%s",
+    button1 = L.SKIP_FOR_GROUP,
+    button2 = L.NO,
+    OnAccept = function(_, d) if d then SkipForGroup(d.step) end end,
+    OnCancel = function(_, d, reason)
+        if d and reason == "clicked" and GroupChannel() then Queue("N", Clean(d.from), "R") end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+local function OnSkipRequest(n, g, from)
+    if not IsLeader() then
+        Print(L.SKIP_REQUEST_INFO, from, L.STEP_N:format(n))
+        return
+    end
+    if not Same(Mine(), g) then return end   -- not my guide: nothing to skip
+    StaticPopup_Hide("SYNCLINE_SKIPREQ")
+    StaticPopup_Show("SYNCLINE_SKIPREQ", L.SKIP_REQUEST_ASK:format(from, StepLabel(n)), nil,
+        { step = n, from = from })
+end
+
+---------------------------------------------------------------------------
+-- Receiving
+---------------------------------------------------------------------------
+local function HandleMessage(text, sender)
+    if debug then Print("|cff999999<- %s: %s|r", tostring(sender), tostring(text)) end
+    if IsMe(sender) then return end
+    local f = Split(text)
+    local who = Bare(sender)
+    if tonumber(f[2]) ~= PROTOCOL then
+        -- someone with another Syncline version: show it in /sl
+        statuses[who] = { protocol = tonumber(f[2]) or 0 }
+        Changed()
+        return
+    end
+    local kind = f[1]
+
+    -- guide fields start at field i (3 for G/S/P, 4 for K/J/R)
+    local function Guide(i)
+        i = i or 3
+        local g = { id = f[i] ~= "" and f[i] or nil, group = f[i + 1] ~= "" and f[i + 1] or nil,
+                    name = f[i + 2] ~= "" and f[i + 2] or nil }
+        if g.id or g.name then return g end
+    end
+
+    if kind == "G" then
+        if not IsLeaderName(sender) then return end   -- only the leader decides
+        local g = Guide()
+        if not g then return end
+        statuses[who] = g
+        g.from = who
+        OnLeaderGuide(g)
+        Changed()
+    elseif kind == "Q" then
+        if IsLeader() then
+            lastSent = nil
+            Debounce("send", 0.5, SendGuide)
+        end
+        Debounce("status", 1, SendStatus)
+    elseif kind == "S" then
+        local st = Guide() or {}
+        st.step, st.total = tonumber(f[6]), tonumber(f[7])
+        statuses[who] = st
+        Changed()
+    elseif kind == "T" then
+        local st = statuses[who] or {}
+        if st.protocol then return end
+        st.step, st.total = tonumber(f[3]), tonumber(f[4])
+        statuses[who] = st
+        Changed()
+    elseif kind == "K" or kind == "J" then
+        if not IsLeaderName(sender) then return end
+        local n, g = tonumber(f[3]), Guide(4)
+        if not n or not g or not Same(Mine(), g) then return end
+        OnLeaderStep(kind, n, who)
+    elseif kind == "R" then
+        local n, g = tonumber(f[3]), Guide(4)
+        if not n or not g then return end
+        OnSkipRequest(n, g, who)
+    elseif kind == "P" then
+        local g = Guide()
+        if not g then return end
+        g.from = who
+        OnSuggestion(g)
+    elseif kind == "N" then
+        if IsLeaderName(sender) and Bare(f[3]) == Bare(UnitName("player")) then
+            Print(f[4] == "R" and L.SKIP_DECLINED or L.DECLINED, who)
+        end
+    end
+end
+
+local function OnMessage(text, sender)
+    local ok, err = pcall(HandleMessage, text, sender)
+    if not ok then
+        if debug then Print("|cffff6060%s|r", tostring(err)) end
+        geterrorhandler()(err)
+    end
+end
+
+---------------------------------------------------------------------------
+-- /sl
+---------------------------------------------------------------------------
+local function GroupMembers()
+    local out = {}
+    for _, unit in ipairs(GroupUnits()) do
+        local name, realm = UnitName(unit)
+        name, realm = Plain(name), Plain(realm)
+        if not name and UnitExists(unit) then name = "?" .. unit end   -- secret name
+        if name then
+            out[#out + 1] = { unit = unit, name = (realm and realm ~= "") and (name .. "-" .. realm) or name }
+        end
+    end
+    return out
+end
+
+-- Everything the overview shows:
+-- { inGroup, isLeader, target = label or nil,
+--   members = { { name, class, lead, me, state = "same"|"other"|"unknown"|"old"|"newer", guide } } }
+function ns.Snapshot()
+    local snap = { inGroup = GroupChannel() ~= nil, isLeader = IsLeader(), members = {} }
+    if not snap.inGroup then
+        local mine = Mine()
+        snap.mine = mine and GuideLabel(mine)
+        return snap
+    end
+    local target = IsLeader() and Mine() or leaderGuide
+    snap.target = target and GuideLabel(target)
+    snap.myStep, snap.myTotal = MyStep()
+    snap.inTarget = target and Same(Mine(), target) or false
+    for _, m in ipairs(GroupMembers()) do
+        local me = UnitIsUnit(m.unit, "player")
+        local s = me and (Mine() or {}) or statuses[Bare(m.name)]
+        local state, guide
+        if not s then
+            state = "unknown"
+        elseif s.protocol then
+            state = s.protocol < PROTOCOL and "old" or "newer"
+        elseif target and Same(s, target) then
+            state, guide = "same", GuideLabel(s)
+        else
+            state, guide = "other", (s.id or s.name) and GuideLabel(s) or nil
+        end
+        local _, class = UnitClass(m.unit)
+        local step, total
+        if me then step, total = snap.myStep, snap.myTotal
+        elseif s and not s.protocol then step, total = s.step, s.total end
+        local member = {
+            name = m.name, class = Plain(class), me = me,
+            lead = Plain(UnitIsGroupLeader(m.unit)) and true or false,
+            state = state, guide = guide, step = step, total = total,
+        }
+        if member.lead then snap.leaderStep = step end
+        snap.members[#snap.members + 1] = member
+    end
+    -- how far each one is from the leader (only in the group guide)
+    for _, m in ipairs(snap.members) do
+        if m.state == "same" and m.step and snap.leaderStep then m.diff = m.step - snap.leaderStep end
+    end
+    if snap.leaderStep and snap.inTarget then snap.leaderStepText = StepText(snap.leaderStep) end
+    return snap
+end
+
+local STATE_TEXT = {
+    same = function() return "|cff40ff40" .. L.STATUS_SAME .. "|r" end,
+    other = function(m) return "|cffff6060" .. L.STATUS_OTHER:format(m.guide or "-") .. "|r" end,
+    unknown = function() return "|cff999999" .. L.STATUS_UNKNOWN .. "|r" end,
+    old = function() return "|cffff9900" .. L.STATUS_OLD .. "|r" end,
+    newer = function() return "|cffff9900" .. L.STATUS_NEWER .. "|r" end,
+}
+ns.STATE_TEXT = STATE_TEXT
+
+local function ShowStatus()
+    local snap = ns.Snapshot()
+    if not snap.inGroup then return Print(L.NOT_IN_GROUP) end
+    if snap.target then Print(L.STATUS_HEAD, snap.target) else Print(L.STATUS_NONE) end
+    for _, m in ipairs(snap.members) do
+        local lead = m.lead and (" (" .. L.STATUS_LEADER .. ")") or ""
+        local step = m.step and ("  " .. L.STEP_OF:format(m.step, m.total or 0)) or ""
+        print(("   %s%s: %s%s"):format(m.name, lead, STATE_TEXT[m.state](m), step))
+    end
+end
+
+-- What the buttons in the windows do
+ns.Actions = {
+    Send = function() lastSent = nil; SendGuide(true) end,
+    Suggest = function() Suggest() end,
+    Get = function()
+        if not GroupChannel() then return Print(L.NOT_IN_GROUP) end
+        if leaderGuide and not IsLeader() then Apply(leaderGuide) end
+        AskLeader()
+    end,
+    SetEnabled = function(on)
+        db.enabled = on and true or false
+        Print(db.enabled and L.ON or L.OFF)
+        if db.enabled then AskLeader() end
+        Changed()
+    end,
+    SkipForGroup = function() SkipForGroup((MyStep())) end,
+    PullToMyStep = function() PullToMyStep() end,
+    RequestSkip = function() RequestSkip() end,
+    SetMode = function(mode)
+        db.mode = mode
+        Print(mode == "ask" and L.MODE_ASK or L.MODE_AUTO)
+    end,
+}
+
+SLASH_SYNCLINE1 = "/sl"
+SLASH_SYNCLINE2 = "/syncline"
+SlashCmdList.SYNCLINE = function(msg)
+    local cmd, rest = strtrim(msg or ""):lower():match("^(%S*)%s*(.-)$")
+    if cmd == "" then
+        if ns.GroupWindow then ns.GroupWindow:Toggle() else ShowStatus() end
+    elseif cmd == "status" then
+        ShowStatus()
+    elseif cmd == L.CMD_OPTIONS or cmd == "options" or cmd == "config" then
+        if ns.Options then ns.Options:Toggle() end
+    elseif cmd == "minimap" then
+        if rest == L.CMD_ON or rest == "on" then db.minimapButton = true
+        elseif rest == L.CMD_OFF or rest == "off" then db.minimapButton = false
+        else db.minimapButton = not db.minimapButton end
+        if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
+    elseif cmd == L.CMD_SEND or cmd == "send" then
+        ns.Actions.Send()
+    elseif cmd == L.CMD_SUGGEST or cmd == "suggest" then
+        ns.Actions.Suggest()
+    elseif cmd == L.CMD_SKIP or cmd == "skip" then
+        ns.Actions.RequestSkip()   -- leader: skips for the group, member: asks the leader
+    elseif cmd == L.CMD_PULL or cmd == "pull" then
+        ns.Actions.PullToMyStep()
+    elseif cmd == L.CMD_GET or cmd == "get" then
+        ns.Actions.Get()
+    elseif cmd == L.CMD_AUTO or cmd == "auto" then
+        ns.Actions.SetMode("auto")
+    elseif cmd == L.CMD_ASK or cmd == "ask" then
+        ns.Actions.SetMode("ask")
+    elseif cmd == L.CMD_ON or cmd == "on" then
+        ns.Actions.SetEnabled(true)
+    elseif cmd == L.CMD_OFF or cmd == "off" then
+        ns.Actions.SetEnabled(false)
+    elseif cmd == "debug" then
+        debug = not debug; Print("debug " .. (debug and "on" or "off"))
+    elseif cmd == "version" then
+        Print("%s (protocol %d)", ns.VERSION, PROTOCOL)
+    else
+        for _, line in ipairs(L.HELP) do print(line) end
+    end
+end
+
+---------------------------------------------------------------------------
+-- Events
+---------------------------------------------------------------------------
+local frame = CreateFrame("Frame")
+ns.frame = frame
+
+local function OnGroupChanged()
+    local inGroup = GroupChannel() ~= nil
+    if inGroup and not wasInGroup then
+        -- just joined: ask for the guide, the leader answers
+        Debounce("join", 2, function() AskLeader(); SendStatus() end)
+    elseif not inGroup then
+        leaderGuide, lastSent, pending = nil, nil, nil
+        wipe(statuses)
+    end
+    wasInGroup = inGroup
+    Changed()
+end
+
+frame:SetScript("OnEvent", function(_, event, ...)
+    if event == "ADDON_LOADED" then
+        if ... ~= ADDON then return end
+        SynclineDB = SynclineDB or {}
+        db = SynclineDB
+        ns.db = db
+        for k, v in pairs(DEFAULTS) do
+            if db[k] == nil then db[k] = v end
+        end
+        C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+        frame:UnregisterEvent("ADDON_LOADED")
+    elseif event == "PLAYER_LOGIN" then
+        local rxp = RXP()
+        if not rxp then return Print(L.NO_RXP) end
+        hooksecurefunc(rxp, "LoadGuide", function() Debounce("check", 0.3, CheckGuide) end)
+        if rxp.SetStep then
+            hooksecurefunc(rxp, "SetStep", function()
+                Debounce("step", 1.5, SendStep)
+                Changed()
+            end)
+        end
+        C_Timer.NewTicker(2, CheckGuide)   -- in case a guide gets loaded some other way
+        if ns.OnLoaded then ns.OnLoaded() end
+        Print(L.LOADED)
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        local login, reload = ...
+        if login or reload then
+            lastSeen = Key(CurrentGuide())
+            wasInGroup = false
+            OnGroupChanged()
+        end
+    elseif event == "GROUP_ROSTER_UPDATE" then
+        OnGroupChanged()
+    elseif event == "PARTY_LEADER_CHANGED" then
+        Changed()
+        if IsLeader() then
+            lastSent = nil
+            Debounce("send", 1, SendGuide)
+        end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        if pending then Apply(pending) end
+        if pendingStep then GoToStep(pendingStep) end
+        if #queue > 0 and not pumping then Pump() end
+    elseif event == "CHAT_MSG_ADDON" then
+        local prefix, text, _, sender = ...
+        if prefix == PREFIX and db then OnMessage(text, sender) end
+    end
+end)
+
+for _, e in ipairs({ "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "GROUP_ROSTER_UPDATE",
+                     "PARTY_LEADER_CHANGED", "PLAYER_REGEN_ENABLED", "CHAT_MSG_ADDON" }) do
+    frame:RegisterEvent(e)
+end
+
+-- for the tests
+ns.test = {
+    OnMessage = OnMessage, CheckGuide = CheckGuide, CurrentGuide = CurrentGuide, GuideID = GuideID,
+    queue = queue, statuses = statuses, MyStep = MyStep,
+    leaderGuide = function() return leaderGuide end,
+}
