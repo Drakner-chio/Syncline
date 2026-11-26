@@ -277,6 +277,8 @@ RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); Run
 -- RestedXP route settings
 ---------------------------------------------------------------------------
 local P = RXP.settings.profile
+-- language independent: only keys, numbers and RestedXP's dungeon tags (DM, RFC, ...)
+check(ns.MyRoute():match("^[%a]=[%w.,]*[;%a=%w.,]*$"), "route settings carry no translated text")
 check(ns.MyRoute() == "a=0;r=1.00;x=1;g=1;f=0;d=DM,RFC", "my route: " .. tostring(ns.MyRoute()))
 -- member: the leader has other dungeons and no overleveled skipping
 STATE.me = "Me"

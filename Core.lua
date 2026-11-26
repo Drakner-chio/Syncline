@@ -752,6 +752,9 @@ end
 -- numbers, skips and "pull to my step" stop matching.
 -- Encoded as "key=value;..." with d=<enabled dungeons, comma separated>.
 -- Professions are left alone: those belong to each character.
+-- Language independent: setting keys, numbers ("%.2f" always with a dot) and
+-- RestedXP's dungeon tags (DM, RFC, ROL, BFD), which are the same in every
+-- translation of the guides. Labels are only made on each client, in its language.
 ---------------------------------------------------------------------------
 local ROUTE_KEYS = {   -- short name, RestedXP setting, kind
     { "a", "enableAutomaticXpRate", "bool" },
