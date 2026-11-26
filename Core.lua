@@ -103,7 +103,8 @@ end
 local function Bare(name)
     name = Plain(name)
     if type(name) ~= "string" then return nil end
-    return (name:match("^([^-]+)") or name)
+    -- "Name-Realm", and on some clients "Name Realm"; names have neither
+    return (name:match("^([^%- ]+)") or name)
 end
 
 local function IsMe(name)
@@ -196,6 +197,97 @@ local function GuideID(group, name)
     return idByKey[Key(group, name)] or idByKey[Key(group, Unaffix(name))]
 end
 
+---------------------------------------------------------------------------
+-- Fingerprints: guides GuideMap doesn't know, e.g. RestedXP's paid Forever
+-- guides, which everyone imports in their own language from the RestedXP
+-- website. Their names differ by language ("43-44 Flusslande II" /
+-- "43-44 Riverglades II"), but the level range in the name and the quests in
+-- the steps don't. Fingerprint: "q:<range>:<first quest ids>".
+---------------------------------------------------------------------------
+local FP_QUESTS = 10
+local fpCache = {}      -- [group^name] = fingerprint or false
+
+local function Range(name)
+    local a, b = tostring(name or ""):match("^0*(%d+)%-0*(%d+)")
+    if a then return a .. "-" .. b end
+end
+
+local function QuestIDs(guide)
+    local ids, seen = {}, {}
+    for _, step in ipairs(guide and guide.steps or {}) do
+        for _, e in ipairs(type(step) == "table" and (step.elements or step) or {}) do
+            local q = type(e) == "table" and tonumber(e.questId)
+            if q and not seen[q] and (e.tag == "accept" or e.tag == "turnin" or e.tag == "complete") then
+                seen[q] = true
+                ids[#ids + 1] = q
+                if #ids >= FP_QUESTS then return ids end
+            end
+        end
+    end
+    return ids
+end
+
+-- The steps of a guide, parsed by RestedXP when needed
+local function Parsed(guide)
+    if not guide then return nil end
+    if guide.steps then return guide end
+    local rxp = RXP()
+    if not rxp or not rxp.FetchGuide then return nil end
+    local ok, parsed = pcall(rxp.FetchGuide, rxp, guide)
+    if ok and type(parsed) == "table" and parsed.steps then return parsed end
+end
+
+local function Fingerprint(guide, group, name)
+    local key = Key(group, name)
+    if fpCache[key] ~= nil then return fpCache[key] or nil end
+    local range = Range(name)
+    local ids = range and QuestIDs(Parsed(guide)) or {}
+    local fp = (#ids > 0) and ("q:" .. range .. ":" .. table.concat(ids, ".")) or false
+    fpCache[key] = fp
+    return fp or nil
+end
+
+local function ParseFingerprint(fp)
+    local range, list = tostring(fp or ""):match("^q:([%d%-]+):([%d%.]+)$")
+    if not range then return nil end
+    local ids = {}
+    for q in list:gmatch("%d+") do ids[tonumber(q)] = true end
+    return range, ids
+end
+
+-- How many of the quests in fingerprint a are in b (0..1)
+local function Overlap(a, b)
+    local ra, ia = ParseFingerprint(a)
+    local rb, ib = ParseFingerprint(b)
+    if not ra or ra ~= rb then return 0 end
+    local n, hit = 0, 0
+    for q in pairs(ia) do
+        n = n + 1
+        if ib[q] then hit = hit + 1 end
+    end
+    return n > 0 and hit / n or 0
+end
+
+-- My guide for a fingerprint: same level range, most quests in common
+local function FindByFingerprint(fp)
+    local range = ParseFingerprint(fp)
+    local rxp = RXP()
+    if not range or not rxp or type(rxp.guides) ~= "table" then return end
+    local best, bestScore, candidates, only = nil, 0, 0, nil
+    for _, guide in pairs(rxp.guides) do
+        if type(guide) == "table" and guide.name and guide.group and Range(guide.name) == range then
+            candidates = candidates + 1
+            only = guide
+            local mine = Fingerprint(guide, guide.group, guide.name)
+            local score = mine and Overlap(fp, mine) or 0
+            if score > bestScore then best, bestScore = guide, score end
+        end
+    end
+    if best and bestScore >= 0.5 then return best end
+    -- one guide for this level range whose quests we can't read: that one
+    if candidates == 1 and not Fingerprint(only, only.group, only.name) then return only end
+end
+
 -- The guide the leader means, as it is called on my client: guide table, group, name
 local function Resolve(g)
     local langs = g.id and ns.GuideMap and ns.GuideMap[g.id]
@@ -210,6 +302,10 @@ local function Resolve(g)
     end
     local guide = Lookup(g.group, g.name)
     if guide then return guide, guide.group or g.group, guide.name or g.name end
+    if g.id and g.id:find("^q:") then
+        guide = FindByFingerprint(g.id)
+        if guide then return guide, guide.group, guide.name end
+    end
     -- same guide name in another group (e.g. a renamed group)
     local rxp = RXP()
     if rxp and type(rxp.guides) == "table" and g.name then
@@ -224,14 +320,25 @@ end
 -- a, b: { id, group, name }
 local function Same(a, b)
     if not a or not b then return false end
-    if a.id and b.id then return a.id == b.id end
+    if a.id and b.id then
+        if a.id == b.id then return true end
+        -- fingerprints of the same guide from different guide versions
+        if a.id:find("^q:") and b.id:find("^q:") then return Overlap(a.id, b.id) >= 0.5 end
+        return false
+    end
     return Key(a.group, a.name) == Key(b.group, b.name)
 end
 
 local function Mine()
     local group, name = CurrentGuide()
     if not group then return nil end
-    return { id = GuideID(group, name), group = group, name = name }
+    local id = GuideID(group, name)
+    if not id then
+        local rxp = RXP()
+        local cur = rxp and rxp.currentGuide
+        if cur and cur.name == name then id = Fingerprint(cur, group, name) end
+    end
+    return { id = id, group = group, name = name }
 end
 
 local function GuideLabel(g)
@@ -357,6 +464,16 @@ end
 ---------------------------------------------------------------------------
 -- Following the leader
 ---------------------------------------------------------------------------
+-- "guide doesn't exist here", once per guide and minute
+local lastMissing, lastMissingAt = nil, 0
+local function PrintMissing(g)
+    local key = (g.id or "") .. Key(g.group, g.name)
+    local now = GetTime and GetTime() or 0
+    if key == lastMissing and now - lastMissingAt < 60 then return end
+    lastMissing, lastMissingAt = key, now
+    Print(L.MISSING, g.from, g.name or g.id)
+end
+
 local function Apply(g)
     local rxp = RXP()
     if not rxp then return end
@@ -372,7 +489,7 @@ local function Apply(g)
 
     local guide, group, name = Resolve(g)
     if not guide then
-        Print(L.MISSING, g.from, g.name or g.id)
+        PrintMissing(g)
         SendStatus()
         return
     end
@@ -431,7 +548,7 @@ local function OnSuggestion(g)
     end
     if Same(Mine(), g) then return end
     if not Resolve(g) then
-        Print(L.MISSING, g.from, g.name or g.id)
+        PrintMissing(g)
         return
     end
     g.suggested = true
@@ -915,6 +1032,6 @@ end
 -- for the tests
 ns.test = {
     OnMessage = OnMessage, CheckGuide = CheckGuide, CurrentGuide = CurrentGuide, GuideID = GuideID,
-    queue = queue, statuses = statuses, MyStep = MyStep,
+    queue = queue, statuses = statuses, MyStep = MyStep, Mine = Mine, Overlap = Overlap,
     leaderGuide = function() return leaderGuide end,
 }

@@ -238,6 +238,41 @@ SlashCmdList.SYNCLINE("status")
 check(logHas("Schritt 15/20"), "status shows my step")
 STATE.me = "Leader"
 
+---------------------------------------------------------------------------
+-- Imported (paid) guides: names differ by language, quests don't
+---------------------------------------------------------------------------
+local FP = "q:43-44:9001.9002.9003.9004.9005.9006.9007.9008.9009.9010"
+STATE.me = "Me"
+local before = LOG[#LOG]
+T.OnMessage("G^2^" .. FP .. "^RestedXP Forever Guide (H)^43-44 Riverglades II", "Leader Beansen")
+check(guide() == DE .. " / 43-44 Flusslande II", "English leader, German import: " .. guide())
+check(logHas("Leader hat |cffffd10043-44 Flusslande II"), "German name in the message, leader with space-realm")
+-- a newer guide version: 8 of 10 quests the same still matches
+RXP:LoadGuide(GUIDES[DE .. "||01-06 Durotar"])
+T.OnMessage("G^2^q:43-44:9001.9002.9003.9004.9005.9006.9007.9008.9998.9999^RestedXP Forever Guide (H)^43-44 Riverglades II", "Leader")
+check(guide() == DE .. " / 43-44 Flusslande II", "fuzzy fingerprint")
+-- the other 43-44 guide is never taken for it
+T.OnMessage("G^2^q:43-44:7001.7002.7003^RestedXP Forever Guide (H)^43-44 Dustwallow", "Leader")
+check(guide() == DE .. " / 43-44 Sümpfe des Elends", "picks by quests, not by range alone: " .. guide())
+-- unknown quests for that range: not found, said once
+local nlog = #LOG
+T.OnMessage("G^2^q:43-44:1.2.3^RestedXP Forever Guide (H)^43-44 Somewhere", "Leader")
+T.OnMessage("G^2^q:43-44:1.2.3^RestedXP Forever Guide (H)^43-44 Somewhere", "Leader")
+local missing = 0
+for i = nlog + 1, #LOG do if LOG[i]:find("gibt es bei dir nicht", 1, true) then missing = missing + 1 end end
+check(missing == 1, "missing message only once: " .. missing)
+-- my imported guide: I send its fingerprint, and the status counts as same
+RXP:LoadGuide(GUIDES[DE .. "||43-44 Flusslande II"]); RunTimers()
+local mine = T.Mine()
+check(mine.id == FP, "my fingerprint: " .. tostring(mine.id))
+STATE.me = "Leader"
+ns.Actions.Send(); RunTimers()
+check(lastSent("G^") == "G^2^" .. FP .. "^" .. DE .. "^43-44 Flusslande II", "leader sends the fingerprint: " .. tostring(lastSent("G^")))
+T.OnMessage("S^2^" .. FP .. "^RestedXP Forever Guide (H)^43-44 Riverglades II^3^60", "Bob Beansen")
+snap = ns.Snapshot(); for _, m in ipairs(snap.members) do if m.name == "Bob-Beansen" then bob = m end end
+check(bob.state == "same", "English Bob in the imported guide counts as same: " .. tostring(bob.state))
+RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
+
 -- the windows
 SlashCmdList.SYNCLINE(""); RunTimers()
 check(SynclineGroupFrame:IsShown(), "/sl opens the group window")

@@ -1,5 +1,10 @@
 # Syncline
 
+## 0.6.1
+- RestedXPs kostenpflichtige Forever-Guides (z. B. „43-44 Flusslande II“) werden jetzt über Client-Sprachen hinweg erkannt. Jeder importiert sie in seiner Sprache, und die Namen unterscheiden sich („43-44 Riverglades II“). Syncline erkennt sie am Levelbereich im Namen und an den Quests in den Schritten.
+- Fix: Spielernamen in der Form „Name Realm“ (mit Leerzeichen) werden richtig erkannt.
+- „Den Guide gibt es bei dir nicht“ kommt nur noch einmal statt mehrfach.
+
 ## 0.6.0
 - Neuer Name: aus GuideSync wird **Syncline**. Befehl jetzt `/sl` (oder `/syncline`).
 - Alle in der Gruppe brauchen Syncline: GuideSync und Syncline sehen sich gegenseitig nicht.

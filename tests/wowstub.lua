@@ -123,11 +123,33 @@ RXP.currentGuide = GUIDES[DE .. "||01-06 Durotar"]
 function RXP:LoadGuide(guide)
     LOADS = LOADS + 1
     if guide.locked then guide = { name = "", group = "", steps = {} } end
+    if not guide.steps then guide = RXP:FetchGuide(guide) end
     RXPCData.currentGuideGroup, RXPCData.currentGuideName = guide.group, guide.name
     RXP.currentGuide = guide
     RXPCData.currentStep = 1
 end
 function RXP.GetGuideProgress() return RXPCData.currentStep end
+
+-- imported (paid) guides: only metadata until RestedXP parses them
+local function Quests(ids)
+    local steps = {}
+    for i, q in ipairs(ids) do
+        steps[i] = { elements = { { tag = (i % 2 == 0) and "turnin" or "accept", questId = q, text = "Quest " .. q } } }
+    end
+    return steps
+end
+RIVER_IDS = { 9001, 9002, 9003, 9004, 9005, 9006, 9007, 9008, 9009, 9010, 9011 }
+GUIDES[DE .. "||43-44 Flusslande II"] = { group = DE, name = "43-44 Flusslande II", key = "fl2", imported = true }
+GUIDES[DE .. "||43-44 Sümpfe des Elends"] = { group = DE, name = "43-44 Sümpfe des Elends", key = "se", imported = true }
+PARSED = { fl2 = Quests(RIVER_IDS), se = Quests({ 7001, 7002, 7003, 7004, 7005 }) }
+FETCHES = 0
+function RXP:FetchGuide(guide)
+    FETCHES = FETCHES + 1
+    if guide.steps then return guide end
+    local steps = PARSED[guide.key]
+    if not steps then return nil end
+    return { group = guide.group, name = guide.name, key = guide.key, steps = steps }
+end
 function RXP.SetStep(n) RXPCData.currentStep = n end
 
 function UnitExists(u) return u == "player" or u == "party1" or u == "party2" end
