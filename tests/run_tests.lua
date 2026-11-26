@@ -273,6 +273,30 @@ snap = ns.Snapshot(); for _, m in ipairs(snap.members) do if m.name == "Bob-Bean
 check(bob.state == "same", "English Bob in the imported guide counts as same: " .. tostring(bob.state))
 RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
 
+-- "Guide sent" in the chat only when it's news
+local function sentLines(from) local n = 0 for i = from, #LOG do if LOG[i]:find("Guide an die Gruppe geschickt", 1, true) then n = n + 1 end end return n end
+local l0, s0 = #LOG + 1, #SENT
+T.OnMessage("Q^2", "Bob Beansen"); RunTimers()
+T.OnMessage("Q^2", "Fluffy-Shocks"); RunTimers()
+check(sentLines(l0) == 0, "answers to Q are quiet")
+local gs = 0 for i = s0 + 1, #SENT do if SENT[i]:find("^G") then gs = gs + 1 end end
+check(gs >= 1, "but the guide still goes out")
+ns.Actions.Send(); RunTimers()
+check(sentLines(l0) == 1, "by hand: in the chat")
+RXP:LoadGuide(GUIDES[DE .. "||06-10 Durotar"]); RunTimers()
+check(sentLines(l0) == 2, "new guide: in the chat")
+-- member: a loading-screen flicker doesn't ask again
+STATE.me = "Me"
+T.OnMessage("G^2^" .. D2 .. "^^", "Leader")
+local q0 = #SENT
+STATE.group = false; Fire("GROUP_ROSTER_UPDATE")
+STATE.group = true; Fire("GROUP_ROSTER_UPDATE"); RunTimers()
+local asked = false for i = q0 + 1, #SENT do if SENT[i] == "Q^2" then asked = true end end
+check(not asked, "no new question after a flicker")
+check(T.leaderGuide() and T.leaderGuide().id == D2, "still knows the leader's guide")
+STATE.me = "Leader"
+RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
+
 -- the windows
 SlashCmdList.SYNCLINE(""); RunTimers()
 check(SynclineGroupFrame:IsShown(), "/sl opens the group window")

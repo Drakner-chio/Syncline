@@ -1,5 +1,10 @@
 # Syncline
 
+## 0.6.2
+- „Guide an die Gruppe geschickt“ steht beim Leiter nur noch im Chat, wenn er einen neuen Guide wählt oder per Hand sendet. Fragt ein Mitglied nach dem Guide (Login, Reload, Ladebildschirm), antwortet Syncline still.
+- Fragen mehrerer Mitglieder kurz nacheinander werden mit einer Antwort erledigt.
+- Ladebildschirme, bei denen die Gruppe kurz „weg“ ist, lösen keine neue Frage an den Leiter mehr aus.
+
 ## 0.6.1
 - RestedXPs kostenpflichtige Forever-Guides (z. B. „43-44 Flusslande II“) werden jetzt über Client-Sprachen hinweg erkannt. Jeder importiert sie in seiner Sprache, und die Namen unterscheiden sich („43-44 Riverglades II“). Syncline erkennt sie am Levelbereich im Namen und an den Quests in den Schritten.
 - Fix: Spielernamen in der Form „Name Realm“ (mit Leerzeichen) werden richtig erkannt.

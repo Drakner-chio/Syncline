@@ -46,6 +46,7 @@ local leaderGuide          -- { id, group, name, from } last guide the leader se
 local statuses = {}        -- [player] = { id, group, name, step, total }
 local lastSeen             -- "group^name" of my loaded guide when last checked
 local lastSent             -- "group^name" the leader sent last
+local lastAnnounced        -- "group^name" the leader last told himself about in the chat
 local applying = false     -- I'm loading the leader's guide right now
 local pending              -- leader guide waiting for the end of combat
 local wasInGroup = false
@@ -454,7 +455,14 @@ local function SendGuide(manual)
     mine.from = UnitName("player")
     leaderGuide = mine
     Queue("G", GuideFields(mine))
-    Print(L.SENT, GuideLabel(mine))
+    -- in the chat only when it's news: a new guide, or sent by hand. Answers to
+    -- members asking (login, reload, loading screens) go out quietly.
+    if manual == true or lastSent ~= lastAnnounced then
+        lastAnnounced = lastSent
+        Print(L.SENT, GuideLabel(mine))
+    elseif debug then
+        Print("|cff999999sent again (someone asked)|r")
+    end
 end
 
 local function AskLeader()
@@ -763,8 +771,9 @@ local function HandleMessage(text, sender)
         Changed()
     elseif kind == "Q" then
         if IsLeader() then
+            -- several asking at once (e.g. after a loading screen): one answer
             lastSent = nil
-            Debounce("send", 0.5, SendGuide)
+            Debounce("send", 2, SendGuide)
         end
         Debounce("status", 1, SendStatus)
     elseif kind == "S" then
@@ -965,11 +974,20 @@ ns.frame = frame
 local function OnGroupChanged()
     local inGroup = GroupChannel() ~= nil
     if inGroup and not wasInGroup then
-        -- just joined: ask for the guide, the leader answers
-        Debounce("join", 2, function() AskLeader(); SendStatus() end)
+        -- just joined: ask for the guide, the leader answers. After a short
+        -- flicker (loading screen) we still know the leader's guide: no need.
+        Debounce("join", 2, function()
+            if not leaderGuide then AskLeader() end
+            SendStatus()
+        end)
     elseif not inGroup then
-        leaderGuide, lastSent, pending = nil, nil, nil
-        wipe(statuses)
+        -- really out of the group? Loading screens can report "no group" for a moment.
+        Debounce("left", 5, function()
+            if GroupChannel() then return end
+            leaderGuide, lastSent, lastAnnounced, pending = nil, nil, nil, nil
+            wipe(statuses)
+            Changed()
+        end)
     end
     wasInGroup = inGroup
     Changed()
