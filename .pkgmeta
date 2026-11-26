@@ -6,8 +6,9 @@ manual-changelog:
 
 # No libraries and no externals: building a release downloads nothing.
 
+# CurseForge relations, sent with every release (CurseForge project slugs).
 required-dependencies:
-  - rxp-guides          # RestedXP Guides (CurseForge slug, bitte prüfen)
+  - restedxp-guide      # RestedXP Guides: Syncline syncs its guides
 
 ignore:
   - README.md

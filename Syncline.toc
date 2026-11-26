@@ -11,6 +11,8 @@
 ## AddonCompartmentFuncOnEnter: Syncline_OnCompartmentEnter
 ## AddonCompartmentFuncOnLeave: Syncline_OnCompartmentLeave
 ## X-License: MIT
+## X-Curse-Project-ID: 1833016
+## X-Website: https://github.com/Drakner-chio/syncline
 ## X-Category: Quests
 
 Locale.lua
