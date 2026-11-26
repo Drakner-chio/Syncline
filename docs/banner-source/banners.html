@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: Grotesk; src: url("fonts/space-grotesk-latin-wght-normal.woff2"); font-weight: 300 700; }
+@font-face { font-family: Inter; src: url("fonts/inter-latin-wght-normal.woff2"); font-weight: 100 900; }
+:root {
+  --acc: #4fc3f7; --acc-hi: #8fdcff; --acc-dim: #123848; --ink: #eef0f4; --text: #b9bec8; --muted: #8a909b;
+  --faint: #5f6570; --line: #23262c; --edge: #30343b; --panel: #14171b; --field: #0b0d10;
+  --good: #5cd97a; --bad: #db5c5c; --warn: #f2b84d;
+  --shaman: #0070dd; --warrior: #c69b6d; --mage: #3fc7eb; --priest: #ffffff; --hunter: #aad372; --rogue: #fff468;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #08090b; font-family: Inter, sans-serif; color: var(--text); }
+.wrap { padding: 20px; display: flex; flex-direction: column; gap: 20px; width: 1240px; }
+.banner {
+  width: 1200px; height: 620px; position: relative; overflow: hidden; border-radius: 18px;
+  background: radial-gradient(ellipse at 76% 38%, #10303f 0%, #0d1a22 40%, #0b0c10 74%);
+}
+.banner::after { content: ""; position: absolute; inset: 0; border: 1px solid #1d3642; border-radius: 18px; pointer-events: none; }
+.card { height: 100%; padding: 44px 56px; display: grid; grid-template-columns: 430px 1fr; gap: 44px; position: relative; }
+.brand { position: absolute; top: 38px; left: 56px; display: flex; align-items: center; gap: 12px; }
+.brand img { width: 34px; height: 34px; }
+.brand span { font-family: Grotesk; font-weight: 700; font-size: 22px; color: var(--ink); letter-spacing: .2px; }
+.left { display: flex; flex-direction: column; justify-content: center; gap: 18px; padding-top: 36px; }
+.pill { align-self: flex-start; color: var(--acc); background: rgba(79,195,247,.1); border: 1px solid rgba(79,195,247,.45);
+        border-radius: 999px; padding: 4px 14px; font-family: Grotesk; font-weight: 600; font-size: 13px;
+        letter-spacing: 1.4px; text-transform: uppercase; }
+h2 { margin: 0; font-family: Grotesk; font-weight: 700; font-size: 50px; line-height: 1.04; color: var(--ink); letter-spacing: -1px; }
+h2 em { font-style: normal; color: var(--acc); }
+.lead { margin: 0; font-size: 19px; line-height: 1.5; color: var(--text); }
+.lead b { color: var(--ink); }
+.foot { margin: 2px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+.right { position: relative; display: flex; align-items: center; justify-content: center; }
+
+/* Syncline's own window look */
+.win { background: #0d0e11; border: 1px solid var(--edge); box-shadow: 0 24px 60px rgba(0,0,0,.65); font-size: 13px; color: var(--ink); }
+.win .head { height: 40px; background: #090a0c; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 9px; padding: 0 12px; }
+.win .head img { width: 20px; height: 20px; }
+.win .head b { font-family: Grotesk; font-size: 15px; color: var(--acc); }
+.win .head i { font-style: normal; color: #9aa0aa; font-size: 13px; }
+.win .head .x { margin-left: auto; color: var(--muted); font-size: 17px; }
+.win .body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.win .bar { display: flex; gap: 6px; padding: 0 12px 12px; }
+.btn { flex: 1; text-align: center; background: #1f2126; border: 1px solid #3d4048; color: var(--ink); font-size: 12px; padding: 5px 10px; white-space: nowrap; }
+.btn.p { background: var(--acc); border-color: var(--acc); color: #06141b; font-weight: 600; }
+.sec { background: var(--panel); border: 1px solid var(--line); padding: 10px 0 8px; position: relative; }
+.sec::before { content: ""; position: absolute; left: 0; top: 10px; width: 2px; height: 14px; background: var(--acc); }
+.sec .t { font-family: Grotesk; font-size: 11px; letter-spacing: 1.3px; text-transform: uppercase; color: var(--muted); padding: 0 12px 8px 14px; }
+.guide { padding: 0 14px; font-size: 15px; color: var(--acc); font-weight: 600; }
+.stepl { padding: 4px 14px 2px; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.stepl b { color: var(--ink); font-weight: 500; }
+.mrow { display: grid; grid-template-columns: 18px 128px 92px 1fr; align-items: center; height: 24px; padding: 0 12px 0 14px; font-size: 13px; white-space: nowrap; }
+.mrow:nth-child(odd) { background: rgba(255,255,255,.025); }
+.dot { width: 6px; height: 6px; display: inline-block; }
+.lead-tag { color: var(--faint); font-size: 11.5px; margin-left: 6px; }
+.g { color: var(--good); } .b { color: var(--bad); } .m { color: var(--muted); } .f { color: var(--faint); } .w { color: var(--warn); } .a { color: var(--acc); }
+.c-sha { color: var(--shaman); } .c-war { color: var(--warrior); } .c-mag { color: var(--mage); } .c-pri { color: var(--priest); } .c-hun { color: var(--hunter); } .c-rog { color: var(--rogue); }
+
+/* popups */
+.pop { width: 330px; background: rgba(10,12,16,.97); border: 1px solid #4a4f58; box-shadow: 0 18px 44px rgba(0,0,0,.65);
+       padding: 18px 18px 14px; text-align: center; font-size: 14px; line-height: 1.5; color: #ffd100; }
+.pop .q { color: #ffd100; }
+.pop .s { color: #fff; display: block; margin: 8px 0; }
+.pop .btns { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+.pop .wb { background: linear-gradient(#8b1010, #4c0606); border: 1px solid #b8913a; color: #ffd100; font-size: 13px; padding: 4px 16px; min-width: 110px; }
+
+/* chat and chips */
+.chatbox { background: rgba(0,0,0,.45); border: 1px solid #22252b; padding: 12px 16px; font-size: 14px; line-height: 1.75; color: #e9e9e9; text-shadow: 0 1px 2px #000; }
+.chatbox img { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+.sl { color: var(--acc); } .y { color: #ffd100; }
+.chip { white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; background: rgba(13,16,19,.92); border: 1px solid #2b3036;
+        padding: 8px 12px; font-size: 13px; color: var(--ink); box-shadow: 0 12px 30px rgba(0,0,0,.5); }
+.chip b { color: var(--acc); font-weight: 600; }
+
+/* client tiles (banner 2) */
+.client { position: absolute; width: 300px; background: rgba(16,18,22,.95); border: 1px solid #2b2f37; padding: 12px 14px; box-shadow: 0 14px 34px rgba(0,0,0,.55); }
+.client .tag { position: absolute; right: 12px; top: 12px; font-size: 10px; letter-spacing: 1px; color: var(--acc); border: 1px solid rgba(79,195,247,.45); padding: 1px 6px; }
+.client .n { font-family: Grotesk; font-weight: 700; font-size: 16px; }
+.client .grp { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.client .gd { color: var(--ink); font-size: 14px; font-weight: 600; margin-top: 2px; }
+.client .st { color: var(--faint); font-size: 12px; margin-top: 6px; }
+.idbox { position: absolute; background: var(--acc-dim); border: 1px solid var(--acc); color: var(--acc-hi); font-family: ui-monospace, Menlo, monospace;
+         font-size: 12px; padding: 6px 10px; box-shadow: 0 0 24px rgba(79,195,247,.25); }
+
+/* settings (banner 5) */
+.sw { display: flex; align-items: center; gap: 10px; padding: 5px 14px; font-size: 13px; color: var(--ink); }
+.tog { width: 28px; height: 14px; background: var(--acc); position: relative; flex: none; }
+.tog::after { content: ""; position: absolute; right: 2px; top: 2px; width: 10px; height: 10px; background: #06141b; }
+.tog.off { background: #2a2d33; } .tog.off::after { left: 2px; right: auto; background: #8a909b; }
+.choice { display: flex; gap: 0; margin: 4px 14px 6px; }
+.choice span { flex: 1; text-align: center; font-size: 12px; padding: 4px 0; border: 1px solid #3d4048; color: var(--muted); }
+.choice span.on { background: var(--acc); border-color: var(--acc); color: #06141b; font-weight: 600; }
+.mm { position: absolute; width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3b5a3a, #1e2f1d 60%, #121a12);
+      border: 3px solid #6b5a33; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+.mmbtn { position: absolute; width: 34px; height: 34px; border-radius: 50%; border: 2px solid #b8913a; background: #0d0e11; display: flex; align-items: center; justify-content: center; }
+.mmbtn img { width: 22px; height: 22px; }
+.tt { position: absolute; width: 240px; background: rgba(8,10,14,.95); border: 1px solid #3a3f48; padding: 10px 12px; font-size: 13px; line-height: 1.6; color: var(--ink); box-shadow: 0 14px 34px rgba(0,0,0,.55); }
+.tt .r { display: flex; justify-content: space-between; } .tt .r span:first-child { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- 1: the idea -->
+<section class="banner" id="b1"><div class="card">
+  <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
+  <div class="left">
+    <div class="pill">RestedXP in a group</div>
+    <h2>One guide. <em>Everyone in it.</em></h2>
+    <p class="lead">The group leader picks a RestedXP guide – and everyone in the group has it loaded a second later. See who is at which step, at a glance.</p>
+    <p class="foot">Made for World of Warcraft: Forever · works with RestedXP Guides</p>
+  </div>
+  <div class="right">
+    <div class="win" style="width:440px">
+      <div class="head"><img src="../../media/icon-400.png"><b>Syncline</b><i>Group</i><span class="x">×</span></div>
+      <div class="body">
+        <div class="sec"><div class="t">Group guide</div>
+          <div class="guide">12-17 The Barrens</div>
+          <div class="stepl">Leader's step: <b>34/120</b>  ·  Turn in Crossroads Supplies</div></div>
+        <div class="sec"><div class="t">Who is in which guide</div>
+          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span><span class="c-war">Alex</span><span class="lead-tag">leader</span></span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
+          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="c-sha">Thrall</span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
+          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="c-hun">Rexxar</span><span>32/120 <span class="w">-2</span></span><span class="g">same guide</span></div>
+          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="c-pri">Zul'jin</span><span>35/120 <span class="a">+1</span></span><span class="g">same guide</span></div>
+          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="c-mag">Vol'jin</span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
+        </div>
+      </div>
+      <div class="bar"><span class="btn p">Skip step</span><span class="btn">Pull to my step</span><span class="btn">Send guide</span></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- 2: mixed languages -->
+<section class="banner" id="b2"><div class="card" style="grid-template-columns: 400px 1fr;">
+  <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
+  <div class="left">
+    <div class="pill">Any client language</div>
+    <h2 style="font-size:46px">German, English, French … <em>same guide.</em></h2>
+    <p class="lead">RestedXP names its guides differently in every language. Syncline knows they are the same guide – everyone gets it in their own language.</p>
+    <p class="foot">German, English, French, Spanish, Portuguese and Chinese clients · the guide list updates itself when RestedXP changes</p>
+  </div>
+  <div class="right">
+    <svg width="660" height="540" viewBox="0 0 660 540" style="position:absolute">
+      <defs><filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+      <g fill="none" stroke="#4fc3f7" stroke-width="2.5" opacity=".9" filter="url(#glow)">
+        <path d="M320,128 C 400,128 420,250 470,262"/>
+        <path d="M320,262 C 400,262 420,266 470,268"/>
+        <path d="M320,400 C 400,400 420,285 470,274"/>
+      </g>
+      <g fill="#4fc3f7"><circle cx="470" cy="262" r="4"/><circle cx="470" cy="268" r="4"/><circle cx="470" cy="274" r="4"/></g>
+    </svg>
+    <div class="client" style="left:10px;top:60px"><span class="tag">ENGLISH</span><div class="n c-war">Alex</div>
+      <div class="grp">RestedXP Forever Guide (H)</div><div class="gd">12-17 The Barrens</div><div class="st">step 34/120</div></div>
+    <div class="client" style="left:10px;top:195px"><span class="tag">DEUTSCH</span><div class="n c-sha">Thrall</div>
+      <div class="grp">RestedXP Forever Route (H)</div><div class="gd">12-17 Das Brachland</div><div class="st">Schritt 34/120</div></div>
+    <div class="client" style="left:10px;top:330px"><span class="tag">FRANÇAIS</span><div class="n c-mag">Vol'jin</div>
+      <div class="grp">RestedXP Guide Forever (H)</div><div class="gd">12-17 Les Tarides</div><div class="st">étape 34/120</div></div>
+    <div class="idbox" style="left:480px; top:252px">one guide,<br>three names</div>
+  </div>
+</div></section>
+
+<!-- 3: skip for everyone -->
+<section class="banner" id="b3"><div class="card" style="grid-template-columns: 410px 1fr;">
+  <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
+  <div class="left">
+    <div class="pill">Steps</div>
+    <h2 style="font-size:46px">Skip a step – <em>for everyone.</em></h2>
+    <p class="lead">The leader skips a step for the whole group with one click, or pulls everyone to his step. Members can <b>ask for a skip</b> – the leader decides.</p>
+    <p class="foot">Only players at that very step move on · in combat it waits · key binding for skip and request</p>
+  </div>
+  <div class="right">
+    <div class="pop" style="position:absolute; left:40px; top:70px">
+      <span class="q">Thrall asks to skip</span>
+      <span class="s">step 41 (Kill 8 Kolkar Pack Runners)</span>
+      <span class="q">Skip it for the whole group?</span>
+      <div class="btns"><span class="wb">Skip for everyone</span><span class="wb">Not now</span></div>
+    </div>
+    <div class="chatbox" style="position:absolute; left:120px; top:300px; width:520px">
+      <div><img src="../../media/icon-400.png"><span class="sl">Syncline</span>: Skipped step 41 (Kill 8 Kolkar Pack Runners) for the group.</div>
+      <div><img src="../../media/icon-400.png"><span class="sl">Syncline</span>: Alex brings the group to step 44 (Turn in at the Crossroads).</div>
+      <div><img src="../../media/icon-400.png"><span class="sl">Syncline</span>: Asked the leader to skip step 47.</div>
+    </div>
+    <div class="chip" style="position:absolute; left:330px; top:470px">everyone <b>at the same step</b> again</div>
+  </div>
+</div></section>
+
+<!-- 4: suggest a guide -->
+<section class="banner" id="b4"><div class="card" style="grid-template-columns: 410px 1fr;">
+  <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
+  <div class="left">
+    <div class="pill">Suggestions</div>
+    <h2 style="font-size:46px">Anyone suggests. <em>The leader decides.</em></h2>
+    <p class="lead">Pick another guide yourself and Syncline offers to suggest it. One click on <b>Take it</b> – and the whole group switches.</p>
+    <p class="foot">Or ask first: every switch can wait for your OK · switching waits for the end of combat</p>
+  </div>
+  <div class="right">
+    <div class="pop" style="position:absolute; left:20px; top:90px">
+      <span class="q">You picked</span>
+      <span class="s">17-22 Stonetalon/Barrens/Ashenvale</span>
+      <span class="q">Suggest it to the group leader?</span>
+      <div class="btns"><span class="wb">Suggest</span><span class="wb">Not now</span></div>
+    </div>
+    <svg width="660" height="540" viewBox="0 0 660 540" style="position:absolute; left:0; top:0">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4fc3f7"/></marker></defs>
+      <path d="M200,250 C 220,300 280,320 330,320" fill="none" stroke="#4fc3f7" stroke-width="2.5" stroke-dasharray="6 6" marker-end="url(#ar)"/>
+    </svg>
+    <div class="pop" style="position:absolute; left:300px; top:270px">
+      <span class="q">Rexxar suggests the guide</span>
+      <span class="s">17-22 Stonetalon/Barrens/Ashenvale</span>
+      <span class="q">Take it for the whole group?</span>
+      <div class="btns"><span class="wb">Take it</span><span class="wb">Not now</span></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- 5: your way -->
+<section class="banner" id="b5"><div class="card" style="grid-template-columns: 400px 1fr;">
+  <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
+  <div class="left">
+    <div class="pill">Your way</div>
+    <h2 style="font-size:46px">Follow along – <em>or ask first.</em></h2>
+    <p class="lead">Switch right away or get a popup first, let the leader move your step or not. Minimap button, settings window, key bindings – <b>/sl</b> for everything else.</p>
+    <p class="foot">English and German · settings also under Options → AddOns → Syncline</p>
+  </div>
+  <div class="right">
+    <div class="win" style="position:absolute; left:10px; top:60px; width:380px">
+      <div class="head"><img src="../../media/icon-400.png"><b>Syncline</b><i>Settings</i><span class="x">×</span></div>
+      <div class="body">
+        <div class="sec"><div class="t">Sync</div>
+          <div class="sw"><span class="tog"></span>Follow the group leader's guide</div>
+          <div class="sw" style="color:var(--muted); font-size:12px; padding-bottom:0">When the leader picks a guide</div>
+          <div class="choice"><span class="on">Switch right away</span><span>Ask me first</span></div>
+          <div class="sw"><span class="tog"></span>Offer to suggest a guide I pick myself</div>
+          <div class="sw"><span class="tog"></span>Let the leader skip steps and pull me to his step</div></div>
+        <div class="sec"><div class="t">General</div>
+          <div class="sw"><span class="tog"></span>Minimap button</div>
+          <div class="sw" style="color:var(--faint); font-size:11.5px">RestedXP Guides: <span class="g">&nbsp;found</span></div></div>
+      </div>
+    </div>
+    <div class="mm" style="left:470px; top:300px"></div>
+    <div class="mmbtn" style="left:455px; top:330px"><img src="../../media/icon-400.png"></div>
+    <div class="tt" style="left:400px; top:120px">
+      <div class="a" style="font-family:Grotesk; font-weight:700">Syncline</div>
+      <div class="r"><span>Group guide</span><span class="a">12-17 The Barrens</span></div>
+      <div class="r"><span>In it</span><span>5 / 5</span></div>
+      <div style="height:6px"></div>
+      <div>Left-click: group window</div>
+      <div>Right-click: settings</div>
+      <div class="m">Drag: move this button</div>
+    </div>
+  </div>
+</div></section>
+
+</div>
+</body>
+</html>

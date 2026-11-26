@@ -1,8 +1,12 @@
 # Syncline
 
+![Syncline – one guide, everyone in it](docs/images/syncline-1.jpg)
+
 Hält die Gruppe im selben **RestedXP**-Guide: Der Gruppenleiter wählt einen Guide, alle anderen laden automatisch denselben.
 
 Alle in der Gruppe brauchen RestedXP Guides **und** Syncline.
+
+CurseForge-Beschreibung: [`docs/curseforge.md`](docs/curseforge.md)
 
 ## So funktioniert's
 - Leiter wählt im RestedXP-Fenster einen Guide → geht sofort an die Gruppe.

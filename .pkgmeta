@@ -12,5 +12,7 @@ required-dependencies:
 ignore:
   - README.md
   - tests
+  - docs
+  - .gitignore
   - tools
   - media/icon-400.png
