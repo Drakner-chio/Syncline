@@ -13,7 +13,10 @@
 --   R^<protocol>^<step>^<id>^<group>^<name>   member to leader: please skip <step> for the group
 --   W^<protocol>^<route settings>      leader: RestedXP route settings of the group
 --   V^<protocol>^<route settings>      member: my RestedXP route settings (for the window)
--- S also carries ^<step>^<total> at the end. Steps are counted the same way in
+-- S also carries ^<step>^<total>^<line> at the end, T ^<line>, K/J/R ^<line>
+-- after the guide fields. <line> is where the step stands in the guide text:
+-- RestedXP leaves out steps for other classes and races, so step numbers
+-- differ from player to player, the line doesn't (and not between languages). Steps are counted the same way in
 -- every language (each translation has the same steps in the same order).
 -- <group>/<name> are RestedXP's guide group and guide name, the same pair it
 -- keeps in RXPCData.currentGuideGroup / currentGuideName. They depend on the
@@ -358,6 +361,34 @@ local function GuideLabel(g)
 end
 
 -- My step in my guide: step, total (nil without a guide)
+-- Where step n stands in my guide's text (see the top of the file)
+local function StepLine(n)
+    local rxp = RXP()
+    local guide = rxp and rxp.currentGuide
+    local step = guide and guide.steps and guide.steps[n]
+    local id, base = step and tonumber(step.stepId), guide and tonumber(guide.guideId)
+    if id and base then return id - base end
+end
+
+-- My step for a line: that step, or the next one I have (the one at the line
+-- may be for another class). Returns index, exact.
+local function IndexForLine(line)
+    local rxp = RXP()
+    local guide = rxp and rxp.currentGuide
+    if not line or not guide or not guide.steps or not tonumber(guide.guideId) then return end
+    local last
+    for i, step in ipairs(guide.steps) do
+        local l = tonumber(step.stepId) and (step.stepId - guide.guideId)
+        if l then
+            if l == line then return i, true end
+            if l > line then return i, false end
+            last = i
+        end
+    end
+    return last, false
+end
+
+-- My step in my guide: step, total, line (nil without a guide)
 local function MyStep()
     local rxp = RXP()
     local guide = rxp and rxp.currentGuide
@@ -365,7 +396,7 @@ local function MyStep()
     local ok, step = pcall(rxp.GetGuideProgress)
     step = ok and tonumber(step) or tonumber(_G.RXPCData and RXPCData.currentStep)
     if not step then return end
-    return step, #guide.steps
+    return step, #guide.steps, StepLine(step)
 end
 
 -- What step n of my guide says, short and without colors and icons
@@ -378,7 +409,7 @@ local function StepText(n)
         local t = type(e) == "table" and (e.text or e.tooltipText)
         if type(t) == "string" and t:find("%S") then
             t = t:gsub("|T.-|t", ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cRXP_[%u_]-_", "")
-                 :gsub("|r", ""):gsub("^[%s>]+", ""):gsub("%s+", " ")
+                 :gsub("|r", ""):gsub("::%d+", ""):gsub("^[%s>]+", ""):gsub("%s+", " ")
             if #t > 70 then t = t:sub(1, 67) .. "..." end
             return t
         end
@@ -439,14 +470,14 @@ end
 local function SendStatus()
     if not GroupChannel() then return end
     local id, group, name = GuideFields(Mine())
-    local step, total = MyStep()
-    Queue("S", id, group, name, step or "", total or "")
+    local step, total, line = MyStep()
+    Queue("S", id, group, name, step or "", total or "", line or "")
 end
 
 local function SendStep()
     if not GroupChannel() then return end
-    local step, total = MyStep()
-    if step then Queue("T", step, total) end
+    local step, total, line = MyStep()
+    if step then Queue("T", step, total, line or "") end
 end
 
 local function SendGuide(manual)
@@ -655,22 +686,37 @@ local function StepLabel(n)
     return text and L.STEP_WITH_TEXT:format(n, text) or L.STEP_N:format(n)
 end
 
--- Leader: skip step n for the whole group (me too, when I'm at it)
-local function SkipForGroup(n)
+-- Someone else's step (their number n, their line) as my step number
+local function LocalStep(n, line)
+    if line then
+        local i = IndexForLine(line)
+        if i then return i end
+    end
+    return n
+end
+
+-- Leader: skip a step for the whole group (me too, when I'm at it).
+-- n: my step number; line: the step's line, when it comes from someone else
+local function SkipForGroup(n, line)
     if not IsLeader() then return Print(L.NOT_LEADER) end
     local mine = Mine()
     if not mine or not n then return Print(L.NO_GUIDE) end
-    Queue("K", n, GuideFields(mine))
+    line = line or StepLine(n)
+    local id, group, name = GuideFields(mine)
+    Queue("K", n, id, group, name, line or "")
     Print(L.SKIPPED_SENT, StepLabel(n))
-    if MyStep() == n then GoToStep(n + 1) end
+    local cur, _, curLine = MyStep()
+    if cur and ((line and curLine == line) or (not line and cur == n)) then GoToStep(cur + 1) end
 end
 
 -- Leader: everyone in my guide to my step
 local function PullToMyStep()
     if not IsLeader() then return Print(L.NOT_LEADER) end
-    local mine, n = Mine(), MyStep()
+    local mine = Mine()
+    local n, _, line = MyStep()
     if not mine or not n then return Print(L.NO_GUIDE) end
-    Queue("J", n, GuideFields(mine))
+    local id, group, name = GuideFields(mine)
+    Queue("J", n, id, group, name, line or "")
     Print(L.PULL_SENT, StepLabel(n))
 end
 
@@ -678,27 +724,32 @@ end
 local function RequestSkip()
     if not GroupChannel() then return Print(L.NOT_IN_GROUP) end
     if IsLeader() then return SkipForGroup((MyStep())) end
-    local mine, n = Mine(), MyStep()
+    local mine = Mine()
+    local n, _, line = MyStep()
     if not mine or not n then return Print(L.NO_GUIDE) end
-    Queue("R", n, GuideFields(mine))
+    local id, group, name = GuideFields(mine)
+    Queue("R", n, id, group, name, line or "")
     Print(L.SKIP_REQUEST_SENT, StepLabel(n))
 end
 
--- Member: the leader wants me to go to step n (skip: from n to n + 1)
-local function OnLeaderStep(kind, n, from)
+-- Member: the leader wants me to go to his step n / line (skip: past it)
+local function OnLeaderStep(kind, n, from, line)
     if not db.enabled or not db.followSteps then return end
-    local cur = MyStep()
+    local cur, _, curLine = MyStep()
     if not cur then return end
+    local here = LocalStep(n, line)
     local target, text
     if kind == "K" then
-        if cur ~= n then
-            Print(L.SKIPPED_ELSEWHERE, from, StepLabel(n), cur)
+        local atIt
+        if line and curLine then atIt = (curLine == line) else atIt = (cur == n) end
+        if not atIt then
+            Print(L.SKIPPED_ELSEWHERE, from, StepLabel(here), cur)
             return
         end
-        target, text = n + 1, L.SKIPPED_BY_LEADER:format(from, StepLabel(n))
+        target, text = cur + 1, L.SKIPPED_BY_LEADER:format(from, StepLabel(cur))
     else
-        if cur == n then return end
-        target, text = n, L.PULLED_BY_LEADER:format(from, StepLabel(n))
+        if cur == here then return end
+        target, text = here, L.PULLED_BY_LEADER:format(from, StepLabel(here))
     end
     if db.mode == "ask" then
         StaticPopup_Hide("SYNCLINE_STEP")
@@ -725,7 +776,7 @@ StaticPopupDialogs["SYNCLINE_SKIPREQ"] = {
     text = "%s",
     button1 = L.SKIP_FOR_GROUP,
     button2 = L.NO,
-    OnAccept = function(_, d) if d then SkipForGroup(d.step) end end,
+    OnAccept = function(_, d) if d then SkipForGroup(d.step, d.line) end end,
     OnCancel = function(_, d, reason)
         if d and reason == "clicked" and GroupChannel() then Queue("N", Clean(d.from), "R") end
     end,
@@ -735,15 +786,16 @@ StaticPopupDialogs["SYNCLINE_SKIPREQ"] = {
     preferredIndex = 3,
 }
 
-local function OnSkipRequest(n, g, from)
+local function OnSkipRequest(n, g, from, line)
     if not IsLeader() then
         Print(L.SKIP_REQUEST_INFO, from, L.STEP_N:format(n))
         return
     end
     if not Same(Mine(), g) then return end   -- not my guide: nothing to skip
+    local here = LocalStep(n, line)
     StaticPopup_Hide("SYNCLINE_SKIPREQ")
-    StaticPopup_Show("SYNCLINE_SKIPREQ", L.SKIP_REQUEST_ASK:format(from, StepLabel(n)), nil,
-        { step = n, from = from })
+    StaticPopup_Show("SYNCLINE_SKIPREQ", L.SKIP_REQUEST_ASK:format(from, StepLabel(here)), nil,
+        { step = here, line = line, from = from })
 end
 
 ---------------------------------------------------------------------------
@@ -944,7 +996,8 @@ local function HandleMessage(text, sender)
         if not g then return end
         local old = statuses[who]
         statuses[who] = { id = g.id, group = g.group, name = g.name,
-                          step = old and old.step, total = old and old.total, route = old and old.route }
+                          step = old and old.step, total = old and old.total, line = old and old.line,
+                          route = old and old.route }
         g.from = who
         OnLeaderGuide(g)
         Changed()
@@ -958,21 +1011,21 @@ local function HandleMessage(text, sender)
         Debounce("route", 1.2, function() SendRoute(IsLeader() and "W" or "V") end)
     elseif kind == "S" then
         local st = Guide() or {}
-        st.step, st.total = tonumber(f[6]), tonumber(f[7])
+        st.step, st.total, st.line = tonumber(f[6]), tonumber(f[7]), tonumber(f[8])
         st.route = statuses[who] and statuses[who].route
         statuses[who] = st
         Changed()
     elseif kind == "T" then
         local st = statuses[who] or {}
         if st.protocol then return end
-        st.step, st.total = tonumber(f[3]), tonumber(f[4])
+        st.step, st.total, st.line = tonumber(f[3]), tonumber(f[4]), tonumber(f[5])
         statuses[who] = st
         Changed()
     elseif kind == "K" or kind == "J" then
         if not IsLeaderName(sender) then return end
         local n, g = tonumber(f[3]), Guide(4)
         if not n or not g or not Same(Mine(), g) then return end
-        OnLeaderStep(kind, n, who)
+        OnLeaderStep(kind, n, who, tonumber(f[7]))
     elseif kind == "W" then
         if not IsLeaderName(sender) or not f[3] then return end
         local st = statuses[who] or {}
@@ -987,7 +1040,7 @@ local function HandleMessage(text, sender)
     elseif kind == "R" then
         local n, g = tonumber(f[3]), Guide(4)
         if not n or not g then return end
-        OnSkipRequest(n, g, who)
+        OnSkipRequest(n, g, who, tonumber(f[7]))
     elseif kind == "P" then
         local g = Guide()
         if not g then return end
@@ -1052,15 +1105,15 @@ function ns.Snapshot()
             state, guide = "other", (s.id or s.name) and GuideLabel(s) or nil
         end
         local _, class = UnitClass(m.unit)
-        local step, total
-        if me then step, total = snap.myStep, snap.myTotal
-        elseif s and not s.protocol then step, total = s.step, s.total end
+        local step, total, line
+        if me then step, total, line = snap.myStep, snap.myTotal, snap.myStep and StepLine(snap.myStep)
+        elseif s and not s.protocol then step, total, line = s.step, s.total, s.line end
         local member = {
             name = m.name, class = Plain(class), me = me,
             lead = Plain(UnitIsGroupLeader(m.unit)) and true or false,
-            state = state, guide = guide, step = step, total = total,
+            state = state, guide = guide, step = step, total = total, line = line,
         }
-        if member.lead then snap.leaderStep = step end
+        if member.lead then snap.leaderStep, snap.leaderTotal, snap.leaderLine = step, total, line end
         snap.members[#snap.members + 1] = member
     end
     -- route settings: same as the leader's?
@@ -1074,11 +1127,25 @@ function ns.Snapshot()
             m.routeDiff = RouteDiff(leadRoute, r)
         end
     end
-    -- how far each one is from the leader (only in the group guide)
-    for _, m in ipairs(snap.members) do
-        if m.state == "same" and m.step and snap.leaderStep then m.diff = m.step - snap.leaderStep end
+    -- how far each one is from the leader (only in the group guide). Counted
+    -- in my guide via the lines; without lines only when the step counts agree.
+    local function Pos(m)
+        if snap.inTarget and m.line then
+            local i = IndexForLine(m.line)
+            if i then return i end
+        end
+        if m.total and snap.leaderTotal and m.total == snap.leaderTotal then return m.step end
     end
-    if snap.leaderStep and snap.inTarget then snap.leaderStepText = StepText(snap.leaderStep) end
+    local leader
+    for _, m in ipairs(snap.members) do if m.lead then leader = m end end
+    local leaderPos = leader and leader.step and Pos(leader)
+    for _, m in ipairs(snap.members) do
+        if m.state == "same" and m.step and leaderPos then
+            local p = Pos(m)
+            if p then m.diff = p - leaderPos end
+        end
+    end
+    if leaderPos and snap.inTarget then snap.leaderStepText = StepText(leaderPos) end
     return snap
 end
 
@@ -1265,6 +1332,7 @@ end
 ns.test = {
     OnMessage = OnMessage, CheckGuide = CheckGuide, CurrentGuide = CurrentGuide, GuideID = GuideID,
     queue = queue, statuses = statuses, MyStep = MyStep, Mine = Mine, Overlap = Overlap,
+    IndexForLine = IndexForLine, StepLine = StepLine,
     CheckRoute = CheckRoute,
     leaderGuide = function() return leaderGuide end,
 }

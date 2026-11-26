@@ -19,7 +19,7 @@ check(logHas("geladen"), "loaded message")
 check(SynclineMinimapButton and SynclineMinimapButton:IsShown(), "minimap button")
 check(SETTINGS[1] == "Syncline", "entry in the game's AddOns settings")
 check(ns.Theme.CHAT_PREFIX:find("media\\Logo", 1, true), "logo in the chat prefix")
-check(SENT[1] == "Q^2" and SENT[2] == "S^2^" .. D1 .. "^" .. DE .. "^01-06 Durotar^1^20", "asks the leader after login: " .. tostring(SENT[2]))
+check(SENT[1] == "Q^2" and SENT[2] == "S^2^" .. D1 .. "^" .. DE .. "^01-06 Durotar^1^20^3", "asks the leader after login: " .. tostring(SENT[2]))
 
 -- the map knows German and English names
 check(T.GuideID(DE, "01-06 Durotar") == D1 and T.GuideID(EN, "01-06 Durotar") == D1, "ids for both languages")
@@ -31,7 +31,7 @@ check(guide() == DE .. " / 06-10 Durotar", "loads the German copy: " .. guide())
 T.OnMessage("G^2^" .. MAGE .. "^RestedXP Horde Mage AoE^12-17 The Barrens AoE", "Leader")
 check(guide() == "RestedXP Horde Magier AoE / 12-17 Das Brachland AoE", "translated guide name: " .. guide())
 RunTimers()
-check(SENT[#SENT] == "S^2^" .. MAGE .. "^RestedXP Horde Magier AoE^12-17 Das Brachland AoE^1^20", "status: " .. SENT[#SENT])
+check(SENT[#SENT] == "S^2^" .. MAGE .. "^RestedXP Horde Magier AoE^12-17 Das Brachland AoE^1^20^3", "status: " .. SENT[#SENT])
 
 -- a guide Syncline doesn't know: group/name, then the same name in another group
 T.OnMessage("G^2^^" .. DE .. "^06-10 Durotar", "Leader")
@@ -163,7 +163,7 @@ RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); Run
 check(T.MyStep() == 1, "my step")
 -- leader: my step changes -> T to the group
 RXP.SetStep(5); RunTimers()
-check(lastSent("T^") == "T^2^5^20", "step sent: " .. tostring(lastSent("T^")))
+check(lastSent("T^") == "T^2^5^20^15", "step sent: " .. tostring(lastSent("T^")))
 -- Bob is at 3, in the same guide: 2 behind
 T.OnMessage("S^2^" .. MAGE .. "^RestedXP Horde Mage AoE^12-17 The Barrens AoE^3^20", "Bob-Beansen")
 local snap = ns.Snapshot()
@@ -175,7 +175,7 @@ snap = ns.Snapshot(); for _, m in ipairs(snap.members) do if m.name == "Bob-Bean
 check(bob.step == 4 and bob.state == "same", "T keeps the guide, updates the step")
 -- leader skips step 5 for the group
 ns.Actions.SkipForGroup(); RunTimers()
-check(lastSent("K^") == "K^2^5^" .. MAGE .. MAGE_DE, "skip sent: " .. tostring(lastSent("K^")))
+check(lastSent("K^") == "K^2^5^" .. MAGE .. MAGE_DE .. "^15", "skip sent: " .. tostring(lastSent("K^")))
 check(T.MyStep() == 6, "leader skipped too")
 -- Bob asks to skip step 4
 local np = #POPUPS
@@ -183,7 +183,7 @@ T.OnMessage("R^2^4^" .. MAGE .. "^RestedXP Horde Mage AoE^12-17 The Barrens AoE"
 check(#POPUPS == np + 1 and POPUPS[#POPUPS].which == "SYNCLINE_SKIPREQ", "skip request popup")
 check(POPUPS[#POPUPS].text:find("Bob möchte", 1, true) and POPUPS[#POPUPS].text:find("Schritt 4", 1, true), "request text")
 StaticPopupDialogs.SYNCLINE_SKIPREQ.OnAccept(nil, POPUPS[#POPUPS].data); RunTimers()
-check(lastSent("K^") == "K^2^4^" .. MAGE .. MAGE_DE, "request accepted: skip 4 for all")
+check(lastSent("K^") == "K^2^4^" .. MAGE .. MAGE_DE .. "^12", "request accepted: skip 4 for all")
 check(T.MyStep() == 6, "leader at 6 stays")
 -- declined
 T.OnMessage("R^2^4^" .. MAGE .. "^^", "Bob-Beansen")
@@ -195,7 +195,7 @@ T.OnMessage("R^2^4^" .. D1 .. "^^", "Bob-Beansen")
 check(#POPUPS == np, "request for another guide ignored")
 -- pull everyone to my step
 ns.Actions.PullToMyStep(); RunTimers()
-check(lastSent("J^") == "J^2^6^" .. MAGE .. MAGE_DE, "pull: " .. tostring(lastSent("J^")))
+check(lastSent("J^") == "J^2^6^" .. MAGE .. MAGE_DE .. "^18", "pull: " .. tostring(lastSent("J^")))
 
 -- member side
 STATE.me = "Me"
@@ -230,7 +230,7 @@ check(T.MyStep() == 15, "followSteps off")
 ns.db.followSteps = true
 -- ask for a skip
 SlashCmdList.SYNCLINE("skippen"); RunTimers()
-check(lastSent("R^") == "R^2^15^" .. MAGE .. MAGE_DE, "request sent: " .. tostring(lastSent("R^")))
+check(lastSent("R^") == "R^2^15^" .. MAGE .. MAGE_DE .. "^45", "request sent: " .. tostring(lastSent("R^")))
 T.OnMessage("N^2^Me^R", "Leader")
 check(logHas("überspringt den Schritt nicht"), "request declined message")
 -- status line has the step
@@ -361,10 +361,50 @@ check(T.leaderGuide() and T.leaderGuide().id == D2, "still knows the leader's gu
 STATE.me = "Leader"
 RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
 
+---------------------------------------------------------------------------
+-- Classes: RestedXP leaves out steps for other classes, numbers differ, lines don't
+---------------------------------------------------------------------------
+-- leader (me) has all 20 steps; Bob lacks the step at line 9 (another class): 19 steps
+RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RXP.SetStep(8); RunTimers()   -- line 24
+T.OnMessage("S^2^" .. MAGE .. "^^^7^19^24", "Bob Beansen")
+snap = ns.Snapshot(); for _, m in ipairs(snap.members) do if m.name == "Bob-Beansen" then bob = m end end
+check(bob.step == 7 and bob.diff == 0, "Bob at 7/19 is at my 8/20: same step (" .. tostring(bob.diff) .. ")")
+-- an older Syncline without lines and another step count: no made-up difference
+T.OnMessage("S^2^" .. MAGE .. "^^^57^100", "Fluffy-Shocks")
+snap = ns.Snapshot()
+for _, m in ipairs(snap.members) do if m.name == "Fluffy-Shocks" then check(m.diff == nil, "no diff without lines: " .. tostring(m.diff)) end end
+-- Bob asks to skip his step 7 (line 24): the popup and the skip are about my step 8
+T.OnMessage("R^2^7^" .. MAGE .. "^^^24", "Bob Beansen")
+check(POPUPS[#POPUPS].text:find("Schritt 8", 1, true), "request shown as my step 8")
+StaticPopupDialogs.SYNCLINE_SKIPREQ.OnAccept(nil, POPUPS[#POPUPS].data); RunTimers()
+check(lastSent("K^") == "K^2^8^" .. MAGE .. MAGE_DE .. "^24", "skip by line: " .. tostring(lastSent("K^")))
+check(T.MyStep() == 9, "I was at it: moved on")
+
+-- member side: my guide lacks the step at line 9
+STATE.me = "Me"
+RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"])
+local full = RXP.currentGuide
+local mine19 = { group = full.group, name = full.name, guideId = full.guideId, steps = {} }
+for i, st in ipairs(full.steps) do if st.stepId - full.guideId ~= 9 then mine19.steps[#mine19.steps + 1] = st end end
+RXP.currentGuide = mine19
+RXP.SetStep(6)   -- line 21 here, the leader calls it step 7
+T.OnMessage("K^2^7^" .. MAGE .. "^^^21", "Leader")
+check(T.MyStep() == 7, "skip finds my step by line: " .. T.MyStep())
+T.OnMessage("K^2^7^" .. MAGE .. "^^^21", "Leader")
+check(T.MyStep() == 7 and logHas("du bist bei Schritt 7"), "not at it any more: only info")
+T.OnMessage("J^2^10^" .. MAGE .. "^^^30", "Leader")
+check(T.MyStep() == 9, "pull to the leader's line 30 = my step 9: " .. T.MyStep())
+-- the step at line 9 doesn't exist here: pull lands on the next one I have
+T.OnMessage("J^2^3^" .. MAGE .. "^^^9", "Leader")
+check(T.MyStep() == 3 and T.StepLine(3) == 12, "missing line: next step I have")
+RXP.currentGuide = full
+STATE.me = "Leader"
+RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
+
 -- the windows
 SlashCmdList.SYNCLINE(""); RunTimers()
 check(SynclineGroupFrame:IsShown(), "/sl opens the group window")
-check(TextShown("06-10 Durotar"), "window shows the group guide")
+check(TextShown("12-17 Das Brachland AoE"), "window shows the group guide")
 check(TextShown("Schritt skippen") and TextShown("Alle zu mir") and TextShown("Guide senden"), "leader buttons (German)")
 check(TextShown("Schritt des Leiters"), "leader's step in the window")
 -- (Bob is in another guide right now: that shows first; settings show when the guide is the same)

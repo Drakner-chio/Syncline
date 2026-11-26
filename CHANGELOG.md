@@ -1,5 +1,11 @@
 # Syncline
 
+## 0.7.1
+- Schritte werden über ihre Zeile im Guide abgeglichen statt über ihre Nummer. RestedXP lässt Schritte für andere Klassen und Rassen weg, darum hat jede Klasse eine andere Zählung (z. B. 58/157 und 58/156). Skip, „Alle zu mir“, Skip-Anfragen und die Abstandsanzeige stimmen jetzt auch bei gemischten Klassen.
+- Fehlt jemandem der Schritt (andere Klasse), landet er beim nächsten Schritt, den er hat.
+- Mit einer älteren Syncline-Version und unterschiedlicher Schrittzahl wird kein Abstand mehr geraten.
+- Schritt-Text ohne RestedXP-Rohcode („Morg::256891“).
+
 ## 0.7.0
 - RestedXP-Routeneinstellungen abgleichen: Dungeons, überlevelte Schritte überspringen, Gruppenquests, Solo Self Found und EXP-Rate bestimmen, welche Schritte ein Guide hat. Der Leiter schickt seine Einstellungen mit dem Guide mit, und auch dann, wenn er sie ändert. Mitglieder übernehmen sie (oder werden gefragt), RestedXP lädt den Guide einmal neu.
 - Im Gruppenfenster steht „Einstellungen anders“ bei Mitgliedern mit abweichenden Einstellungen. Mit der Maus darüber sieht man welche, `/sl status` zeigt es auch.

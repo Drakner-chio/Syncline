@@ -106,9 +106,11 @@ DE, EN = "RestedXP Forever Route (H)", "RestedXP Forever Guide (H)"
 RXPCData = { currentGuideGroup = DE, currentGuideName = "01-06 Durotar" }
 local function G(group, name, extra)
     local g = extra or {}
-    g.group, g.name, g.steps = group, name, {}
+    g.group, g.name, g.steps, g.guideId = group, name, {}, 1000
     for i = 1, 20 do
-        g.steps[i] = { index = i, elements = { { text = "|cRXP_FRIENDLY_Kaltunk|r Schritt " .. i .. " bei |T123:0|tKaltunk" } } }
+        -- like RestedXP: stepId = line in the guide text + guideId; a step every 3 lines
+        g.steps[i] = { index = i, stepId = 1000 + i * 3,
+                       elements = { { text = "|cRXP_FRIENDLY_Kaltunk::3521|r Schritt " .. i .. " bei |T123:0|tKaltunk" } } }
     end
     return g
 end
