@@ -11,6 +11,8 @@
 --   K^<protocol>^<step>^<id>^<group>^<name>   leader: everyone at <step> of this guide skips it
 --   J^<protocol>^<step>^<id>^<group>^<name>   leader: everyone in this guide jumps to <step>
 --   R^<protocol>^<step>^<id>^<group>^<name>   member to leader: please skip <step> for the group
+--   W^<protocol>^<route settings>      leader: RestedXP route settings of the group
+--   V^<protocol>^<route settings>      member: my RestedXP route settings (for the window)
 -- S also carries ^<step>^<total> at the end. Steps are counted the same way in
 -- every language (each translation has the same steps in the same order).
 -- <group>/<name> are RestedXP's guide group and guide name, the same pair it
@@ -35,6 +37,8 @@ local DEFAULTS = {
     mode = "auto",         -- "auto": switch right away, "ask": popup first
     offerSuggest = true,   -- picked another guide myself: offer to suggest it
     followSteps = true,    -- the leader may skip steps for me / pull me to his step
+    followRoute = true,    -- take the leader's RestedXP route settings (dungeons, ...)
+    shareRoute = true,     -- leader: send my route settings to the group
     minimapButton = true,
     minimapAngle = 200,
     locked = false,        -- windows can't be dragged
@@ -51,6 +55,10 @@ local applying = false     -- I'm loading the leader's guide right now
 local pending              -- leader guide waiting for the end of combat
 local wasInGroup = false
 local pendingStep          -- step to go to after combat
+local pendingRoute         -- route settings to take after combat
+local leaderRoute          -- route settings the leader sent last
+local lastRouteSent        -- route settings I sent last (leader)
+local SendRoute            -- defined with the route settings below
 local timers = {}
 local debug = false        -- /sl debug: show every message
 
@@ -455,6 +463,7 @@ local function SendGuide(manual)
     mine.from = UnitName("player")
     leaderGuide = mine
     Queue("G", GuideFields(mine))
+    if db.shareRoute then SendRoute("W") end
     -- in the chat only when it's news: a new guide, or sent by hand. Answers to
     -- members asking (login, reload, loading screens) go out quietly.
     if manual == true or lastSent ~= lastAnnounced then
@@ -738,6 +747,171 @@ local function OnSkipRequest(n, g, from)
 end
 
 ---------------------------------------------------------------------------
+-- RestedXP route settings (Options → Guide Routing): they decide which steps
+-- a guide has. Different settings in one group = different steps, so step
+-- numbers, skips and "pull to my step" stop matching.
+-- Encoded as "key=value;..." with d=<enabled dungeons, comma separated>.
+-- Professions are left alone: those belong to each character.
+---------------------------------------------------------------------------
+local ROUTE_KEYS = {   -- short name, RestedXP setting, kind
+    { "a", "enableAutomaticXpRate", "bool" },
+    { "r", "xprate", "num" },
+    { "x", "enableXpStepSkipping", "bool" },
+    { "g", "enableGroupQuests", "bool" },
+    { "f", "soloSelfFound", "bool" },
+    { "l", "loremasterMode", "bool" },
+}
+local ROUTE_LABEL = {
+    a = "EXP rate", r = "EXP rate", x = "Skip overleveled steps", g = "Group quests",
+    f = "Solo Self Found", l = "Loremaster", d = "Dungeons",
+}
+
+local function RouteProfile()
+    local rxp = RXP()
+    local settings = rxp and rxp.settings
+    return settings and type(settings.profile) == "table" and settings.profile or nil, settings
+end
+
+-- My route settings as a string (nil without RestedXP settings)
+local function MyRoute()
+    local p, settings = RouteProfile()
+    if not p then return nil end
+    local parts = {}
+    for _, k in ipairs(ROUTE_KEYS) do
+        local v = p[k[2]]
+        if v ~= nil then
+            if k[3] == "bool" then v = v and "1" or "0"
+            else v = ("%.2f"):format(tonumber(v) or 1) end
+            -- an automatic rate is each player's own: don't compare it
+            if not (k[1] == "r" and p.enableAutomaticXpRate) then
+                parts[#parts + 1] = k[1] .. "=" .. v
+            end
+        end
+    end
+    if type(p.dungeons) == "table" then
+        local on = {}
+        for d, enabled in pairs(p.dungeons) do
+            if enabled then on[#on + 1] = Clean(tostring(d)):gsub("[,;=]", "") end
+        end
+        table.sort(on)
+        parts[#parts + 1] = "d=" .. table.concat(on, ",")
+    end
+    return table.concat(parts, ";")
+end
+ns.MyRoute = MyRoute
+
+local function ParseRoute(text)
+    local t = {}
+    for k, v in tostring(text or ""):gmatch("(%a)=([^;]*)") do t[k] = v end
+    return t
+end
+
+-- Which settings differ: list of labels (empty = same)
+local function RouteDiff(a, b)
+    local ta, tb, out, seen = ParseRoute(a), ParseRoute(b), {}, {}
+    for _, k in ipairs({ "a", "r", "x", "g", "f", "l", "d" }) do
+        if ta[k] and tb[k] and ta[k] ~= tb[k] and not seen[ROUTE_LABEL[k]] then
+            seen[ROUTE_LABEL[k]] = true
+            out[#out + 1] = L[ROUTE_LABEL[k]]
+        end
+    end
+    return out
+end
+ns.RouteDiff = RouteDiff
+
+function SendRoute(kind)
+    if not GroupChannel() then return end
+    local route = MyRoute()
+    if not route then return end
+    if kind == "W" then lastRouteSent = route end
+    Queue(kind, route)
+end
+
+-- Take the leader's route settings
+local function ApplyRoute(text)
+    local p, settings = RouteProfile()
+    if not p then return end
+    if InCombatLockdown() then
+        pendingRoute = text
+        return
+    end
+    pendingRoute = nil
+    local t = ParseRoute(text)
+    for _, k in ipairs(ROUTE_KEYS) do
+        local v = t[k[1]]
+        if v ~= nil and p[k[2]] ~= nil then
+            if k[3] == "bool" then p[k[2]] = (v == "1") else p[k[2]] = tonumber(v) or p[k[2]] end
+        end
+    end
+    if t.d and type(p.dungeons) == "table" then
+        local want = {}
+        for d in t.d:gmatch("[^,]+") do want[d] = true end
+        -- only dungeons this client knows; the rest stay as they are
+        local known = {}
+        local ok, list = pcall(function() return settings.dungeons:GetDungeons() end)
+        if ok and type(list) == "table" then for d in pairs(list) do known[d] = true end end
+        for d in pairs(p.dungeons) do known[d] = true end
+        for d in pairs(want) do known[d] = true end
+        for d in pairs(known) do p.dungeons[d] = want[d] or false end
+    end
+    local rxp = RXP()
+    if rxp and rxp.ReloadGuide then
+        applying = true
+        local ok2, err = pcall(rxp.ReloadGuide, rxp, true)
+        applying = false
+        if not ok2 then geterrorhandler()(err) end
+    end
+    Changed()
+end
+
+StaticPopupDialogs["SYNCLINE_ROUTE"] = {
+    text = "%s",
+    button1 = L.TAKE,
+    button2 = L.NO,
+    OnAccept = function(_, d)
+        if d then
+            ApplyRoute(d.route)
+            Print(L.ROUTE_TAKEN, d.from, table.concat(d.diff, ", "))
+            SendRoute("V")
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+-- Member: the leader's route settings came in
+local function OnLeaderRoute(text, from)
+    leaderRoute = text
+    Changed()
+    local mine = MyRoute()
+    if not mine then return end
+    local diff = RouteDiff(text, mine)
+    if #diff == 0 or not db.enabled or not db.followRoute then
+        Debounce("route", 1, function() SendRoute("V") end)
+        return
+    end
+    if db.mode == "ask" then
+        StaticPopup_Hide("SYNCLINE_ROUTE")
+        StaticPopup_Show("SYNCLINE_ROUTE", L.ROUTE_ASK:format(from, table.concat(diff, ", ")), nil,
+            { route = text, from = from, diff = diff })
+    else
+        ApplyRoute(text)
+        Print(L.ROUTE_TAKEN, from, table.concat(diff, ", "))
+        Debounce("route", 1, function() SendRoute("V") end)
+    end
+end
+
+-- Leader: did my route settings change? Then the group gets them.
+local function CheckRoute()
+    if not db.shareRoute or not IsLeader() then return end
+    local route = MyRoute()
+    if route and route ~= lastRouteSent then Debounce("routeSend", 1, function() SendRoute("W") end) end
+end
+ns.CheckRoute = CheckRoute
+
+---------------------------------------------------------------------------
 -- Receiving
 ---------------------------------------------------------------------------
 local function HandleMessage(text, sender)
@@ -765,7 +939,9 @@ local function HandleMessage(text, sender)
         if not IsLeaderName(sender) then return end   -- only the leader decides
         local g = Guide()
         if not g then return end
-        statuses[who] = g
+        local old = statuses[who]
+        statuses[who] = { id = g.id, group = g.group, name = g.name,
+                          step = old and old.step, total = old and old.total, route = old and old.route }
         g.from = who
         OnLeaderGuide(g)
         Changed()
@@ -776,9 +952,11 @@ local function HandleMessage(text, sender)
             Debounce("send", 2, SendGuide)
         end
         Debounce("status", 1, SendStatus)
+        Debounce("route", 1.2, function() SendRoute(IsLeader() and "W" or "V") end)
     elseif kind == "S" then
         local st = Guide() or {}
         st.step, st.total = tonumber(f[6]), tonumber(f[7])
+        st.route = statuses[who] and statuses[who].route
         statuses[who] = st
         Changed()
     elseif kind == "T" then
@@ -792,6 +970,17 @@ local function HandleMessage(text, sender)
         local n, g = tonumber(f[3]), Guide(4)
         if not n or not g or not Same(Mine(), g) then return end
         OnLeaderStep(kind, n, who)
+    elseif kind == "W" then
+        if not IsLeaderName(sender) or not f[3] then return end
+        local st = statuses[who] or {}
+        if not st.protocol then st.route = f[3]; statuses[who] = st end
+        OnLeaderRoute(f[3], who)
+    elseif kind == "V" then
+        local st = statuses[who] or {}
+        if st.protocol then return end
+        st.route = f[3]
+        statuses[who] = st
+        Changed()
     elseif kind == "R" then
         local n, g = tonumber(f[3]), Guide(4)
         if not n or not g then return end
@@ -871,6 +1060,17 @@ function ns.Snapshot()
         if member.lead then snap.leaderStep = step end
         snap.members[#snap.members + 1] = member
     end
+    -- route settings: same as the leader's?
+    local leadRoute = IsLeader() and MyRoute() or leaderRoute
+    snap.leaderRoute = leadRoute
+    for _, m in ipairs(snap.members) do
+        local r
+        if m.me then r = MyRoute()
+        else local st = statuses[Bare(m.name)]; r = st and not st.protocol and st.route end
+        if r and leadRoute then
+            m.routeDiff = RouteDiff(leadRoute, r)
+        end
+    end
     -- how far each one is from the leader (only in the group guide)
     for _, m in ipairs(snap.members) do
         if m.state == "same" and m.step and snap.leaderStep then m.diff = m.step - snap.leaderStep end
@@ -895,7 +1095,9 @@ local function ShowStatus()
     for _, m in ipairs(snap.members) do
         local lead = m.lead and (" (" .. L.STATUS_LEADER .. ")") or ""
         local step = m.step and ("  " .. L.STEP_OF:format(m.step, m.total or 0)) or ""
-        print(("   %s%s: %s%s"):format(m.name, lead, STATE_TEXT[m.state](m), step))
+        local route = (m.routeDiff and #m.routeDiff > 0)
+            and ("  |cffff9900" .. L.ROUTE_DIFFERS:format(table.concat(m.routeDiff, ", ")) .. "|r") or ""
+        print(("   %s%s: %s%s%s"):format(m.name, lead, STATE_TEXT[m.state](m), step, route))
     end
 end
 
@@ -915,6 +1117,11 @@ ns.Actions = {
         Changed()
     end,
     SkipForGroup = function() SkipForGroup((MyStep())) end,
+    SendRoute = function()
+        if not IsLeader() then return Print(L.NOT_LEADER) end
+        SendRoute("W")
+        Print(L.ROUTE_SENT)
+    end,
     PullToMyStep = function() PullToMyStep() end,
     RequestSkip = function() RequestSkip() end,
     SetMode = function(mode)
@@ -944,6 +1151,8 @@ SlashCmdList.SYNCLINE = function(msg)
         ns.Actions.Suggest()
     elseif cmd == L.CMD_SKIP or cmd == "skip" then
         ns.Actions.RequestSkip()   -- leader: skips for the group, member: asks the leader
+    elseif cmd == L.CMD_ROUTE or cmd == "route" then
+        ns.Actions.SendRoute()
     elseif cmd == L.CMD_PULL or cmd == "pull" then
         ns.Actions.PullToMyStep()
     elseif cmd == L.CMD_GET or cmd == "get" then
@@ -985,6 +1194,7 @@ local function OnGroupChanged()
         Debounce("left", 5, function()
             if GroupChannel() then return end
             leaderGuide, lastSent, lastAnnounced, pending = nil, nil, nil, nil
+            leaderRoute, lastRouteSent = nil, nil
             wipe(statuses)
             Changed()
         end)
@@ -1014,7 +1224,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
                 Changed()
             end)
         end
-        C_Timer.NewTicker(2, CheckGuide)   -- in case a guide gets loaded some other way
+        C_Timer.NewTicker(2, function() CheckGuide(); CheckRoute() end)   -- also catches changes made elsewhere
         if ns.OnLoaded then ns.OnLoaded() end
         Print(L.LOADED)
     elseif event == "PLAYER_ENTERING_WORLD" then
@@ -1035,6 +1245,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
     elseif event == "PLAYER_REGEN_ENABLED" then
         if pending then Apply(pending) end
         if pendingStep then GoToStep(pendingStep) end
+        if pendingRoute then ApplyRoute(pendingRoute) end
         if #queue > 0 and not pumping then Pump() end
     elseif event == "CHAT_MSG_ADDON" then
         local prefix, text, _, sender = ...
@@ -1051,5 +1262,6 @@ end
 ns.test = {
     OnMessage = OnMessage, CheckGuide = CheckGuide, CurrentGuide = CurrentGuide, GuideID = GuideID,
     queue = queue, statuses = statuses, MyStep = MyStep, Mine = Mine, Overlap = Overlap,
+    CheckRoute = CheckRoute,
     leaderGuide = function() return leaderGuide end,
 }

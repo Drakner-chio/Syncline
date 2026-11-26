@@ -129,6 +129,15 @@ function RXP:LoadGuide(guide)
     RXPCData.currentStep = 1
 end
 function RXP.GetGuideProgress() return RXPCData.currentStep end
+RELOADS = 0
+function RXP:ReloadGuide(keepStep) RELOADS = RELOADS + 1 end
+RXP.settings = {
+    profile = { enableAutomaticXpRate = false, xprate = 1, enableXpStepSkipping = true,
+                enableGroupQuests = true, soloSelfFound = false,
+                dungeons = { DM = true, SFK = false, RFC = true } },
+    dungeons = {},
+}
+function RXP.settings.dungeons:GetDungeons() return { DM = "Die Todesminen", SFK = "Burg Shadowfang", RFC = "Ragefireabgrund", WC = "Höhlen des Wehklagens" } end
 
 -- imported (paid) guides: only metadata until RestedXP parses them
 local function Quests(ids)

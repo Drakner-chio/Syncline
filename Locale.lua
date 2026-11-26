@@ -32,6 +32,11 @@ L.MODE_AUTO = "Switch automatically when the leader picks a guide."
 L.MODE_ASK = "Ask before switching."
 L.CMD_OPTIONS = "options"
 L.CMD_SKIP, L.CMD_PULL = "skip", "pull"
+L.CMD_ROUTE = "route"
+L.ROUTE_TAKEN = "Took %s's RestedXP route settings: %s."
+L.ROUTE_ASK = "%s (group leader) has other RestedXP route settings:\n\n%s\n\nTake them, so everyone has the same steps?"
+L.ROUTE_SENT = "Sent your RestedXP route settings to the group."
+L.ROUTE_DIFFERS = "other settings: %s"
 L.STEP_N = "step %d"
 L.STEP_WITH_TEXT = "step %d (%s)"
 L.STEP_OF = "step %d/%d"
@@ -57,6 +62,7 @@ L.HELP = {
     "|cffffd100/sl suggest|r  suggest my guide to the leader",
     "|cffffd100/sl skip|r  leader: skip the step for everyone, others: ask the leader",
     "|cffffd100/sl pull|r  leader: everyone in the guide to my step",
+    "|cffffd100/sl route|r  leader: send my RestedXP route settings (dungeons, ...) again",
     "|cffffd100/sl auto|r / |cffffd100ask|r  switch on my own / ask first",
     "|cffffd100/sl on|r / |cffffd100off|r  sync on or off",
 }
@@ -102,6 +108,11 @@ if GetLocale() == "deDE" then
     L.MODE_ASK = "Vor dem Wechseln fragen."
     L.CMD_OPTIONS = "optionen"
     L.CMD_SKIP, L.CMD_PULL = "skippen", "herholen"
+    L.CMD_ROUTE = "route"
+    L.ROUTE_TAKEN = "RestedXP-Routeneinstellungen von %s übernommen: %s."
+    L.ROUTE_ASK = "%s (Gruppenleiter) hat andere RestedXP-Routeneinstellungen:\n\n%s\n\nÜbernehmen, damit alle die gleichen Schritte haben?"
+    L.ROUTE_SENT = "Deine RestedXP-Routeneinstellungen an die Gruppe geschickt."
+    L.ROUTE_DIFFERS = "andere Einstellungen: %s"
     L.STEP_N = "Schritt %d"
     L.STEP_WITH_TEXT = "Schritt %d (%s)"
     L.STEP_OF = "Schritt %d/%d"
@@ -127,6 +138,7 @@ if GetLocale() == "deDE" then
         "|cffffd100/sl vorschlagen|r  meinen Guide dem Leiter vorschlagen",
         "|cffffd100/sl skippen|r  Leiter: Schritt für alle überspringen, sonst: beim Leiter anfragen",
         "|cffffd100/sl herholen|r  Leiter: alle im Guide zu meinem Schritt holen",
+        "|cffffd100/sl route|r  Leiter: meine RestedXP-Routeneinstellungen (Dungeons, ...) nochmal senden",
         "|cffffd100/sl auto|r / |cffffd100fragen|r  selbst wechseln / vorher fragen",
         "|cffffd100/sl an|r / |cffffd100aus|r  Sync an oder aus",
     }
@@ -206,6 +218,19 @@ if GetLocale() == "deDE" then
         ["%d behind"] = "%d zurück",
         ["%d ahead"] = "%d voraus",
         ["Skip step (leader) / request skip"] = "Schritt skippen (Leiter) / Skip anfragen",
+        ["EXP rate"] = "EXP-Rate",
+        ["Skip overleveled steps"] = "Überlevelte Schritte überspringen",
+        ["Group quests"] = "Gruppenquests",
+        ["Solo Self Found"] = "Solo Self Found",
+        ["Loremaster"] = "Loremaster",
+        ["Dungeons"] = "Dungeons",
+        ["settings differ"] = "Einstellungen anders",
+        ["RestedXP route settings"] = "RestedXP-Routeneinstellungen",
+        ["Take the leader's RestedXP route settings"] = "RestedXP-Routeneinstellungen des Leiters übernehmen",
+        ["Dungeons, skip overleveled steps, group quests, Solo Self Found and EXP rate decide which steps a guide has. With the leader's settings everyone has the same steps."] =
+            "Dungeons, überlevelte Schritte, Gruppenquests, Solo Self Found und EXP-Rate bestimmen, welche Schritte ein Guide hat. Mit den Einstellungen des Leiters haben alle die gleichen Schritte.",
+        ["As leader: send my route settings to the group"] = "Als Leiter: meine Routeneinstellungen an die Gruppe senden",
+        ["Different from the leader:"] = "Anders als beim Leiter:",
     }
     for k, v in pairs(de) do L[k] = v end
 end

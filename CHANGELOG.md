@@ -1,5 +1,11 @@
 # Syncline
 
+## 0.7.0
+- RestedXP-Routeneinstellungen abgleichen: Dungeons, überlevelte Schritte überspringen, Gruppenquests, Solo Self Found und EXP-Rate bestimmen, welche Schritte ein Guide hat. Der Leiter schickt seine Einstellungen mit dem Guide mit, und auch dann, wenn er sie ändert. Mitglieder übernehmen sie (oder werden gefragt), RestedXP lädt den Guide einmal neu.
+- Im Gruppenfenster steht „Einstellungen anders“ bei Mitgliedern mit abweichenden Einstellungen. Mit der Maus darüber sieht man welche, `/sl status` zeigt es auch.
+- Neue Einstellungen: „RestedXP-Routeneinstellungen des Leiters übernehmen“ und „Als Leiter: meine Routeneinstellungen an die Gruppe senden“ (beide an). Neuer Befehl `/sl route`.
+- Berufe bleiben bei jedem, wie sie sind. Eine automatische EXP-Rate wird nicht verglichen, die ist pro Spieler.
+
 ## 0.6.2
 - „Guide an die Gruppe geschickt“ steht beim Leiter nur noch im Chat, wenn er einen neuen Guide wählt oder per Hand sendet. Fragt ein Mitglied nach dem Guide (Login, Reload, Ladebildschirm), antwortet Syncline still.
 - Fragen mehrerer Mitglieder kurz nacheinander werden mit einer Antwort erledigt.

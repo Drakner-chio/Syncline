@@ -9,6 +9,7 @@
 - **Who is where:** the group window shows every player's step and how far ahead or behind the leader they are, plus the leader's step with its text
 - **Skip for everyone:** the leader skips a step for the whole group with one click, or pulls everyone to his step
 - **Ask for a skip:** members ask the leader to skip their step – he gets a popup and decides
+- **Same route settings:** dungeons, skipping overleveled steps, group quests, Solo Self Found and the EXP rate decide which steps a guide has. The leader's settings go to the group, so everyone has the same steps
 - **Suggest a guide:** pick another guide yourself and Syncline offers to suggest it to the leader. One click on *Take it*, and the whole group switches
 - **Your way** (`/sl options`): switch right away or get asked first, let the leader move your step or not, minimap button, window size
 - **Safe:** nothing switches in combat – it waits until combat ends
@@ -39,6 +40,7 @@ Made for **World of Warcraft: Forever**. English and German.
 | `/sl suggest` | suggest your guide to the leader |
 | `/sl skip` | leader: skip the step for everyone · others: ask the leader |
 | `/sl pull` | (leader) everyone in the guide to your step |
+| `/sl route` | (leader) send your RestedXP route settings again |
 | `/sl auto` / `ask` | switch right away / ask first |
 | `/sl on` / `off` | sync on or off |
 | `/sl options` | settings |

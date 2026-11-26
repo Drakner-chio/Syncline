@@ -22,7 +22,7 @@ local function Build()
 
     -- Sync
     local y = -40
-    local sync = T.Card(frame, "Sync", PAD, y, cw, 176)
+    local sync = T.Card(frame, "Sync", PAD, y, cw, 230)
     controls[#controls + 1] = T.Switch(sync, "Follow the group leader's guide", 16, -34,
         function() return ns.db.enabled end, function(v) ns.Actions.SetEnabled(v) end)
     controls[#controls + 1] = T.Choice(sync, "When the leader picks a guide", 16, -62, {
@@ -36,9 +36,15 @@ local function Build()
         function() return ns.db.followSteps end, function(v) ns.db.followSteps = v end)
     T.Tooltip(controls[#controls], "Skip step",
         "When the leader skips a step or pulls the group to his step, you go along (or get asked, see above).")
+    controls[#controls + 1] = T.Switch(sync, "Take the leader's RestedXP route settings", 16, -174,
+        function() return ns.db.followRoute end, function(v) ns.db.followRoute = v end)
+    T.Tooltip(controls[#controls], "RestedXP route settings",
+        "Dungeons, skip overleveled steps, group quests, Solo Self Found and EXP rate decide which steps a guide has. With the leader's settings everyone has the same steps.")
+    controls[#controls + 1] = T.Switch(sync, "As leader: send my route settings to the group", 16, -200,
+        function() return ns.db.shareRoute end, function(v) ns.db.shareRoute = v; if v then ns.CheckRoute() end end)
 
     -- Window
-    y = y - 186
+    y = y - 240
     local win = T.Card(frame, "Group window", PAD, y, cw, 128)
     controls[#controls + 1] = T.Slider(win, "Size", 16, -30, cw - 32,
         function() return ns.db.windowScale end,

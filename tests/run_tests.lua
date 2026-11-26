@@ -1,6 +1,7 @@
 -- Syncline tests. Run from the repo root: lua5.1 tests/run.lua
 local function check(c, m) if not c then error(m or "check failed", 2) end end
 local function logHas(s) for i = #LOG, 1, -1 do if LOG[i]:find(s, 1, true) then return true end end end
+local function lastSent(prefix) for i = #SENT, 1, -1 do if SENT[i]:find(prefix, 1, true) == 1 then return SENT[i] end end end
 local function guide() return RXPCData.currentGuideGroup .. " / " .. RXPCData.currentGuideName end
 local ns = {}
 assert(loadfile("Locale.lua"))("Syncline", ns)
@@ -113,7 +114,7 @@ SlashCmdList.SYNCLINE("an")
 -- now I'm the (German) leader: picking a guide sends it with its id
 STATE.me = "Leader"; local n = #SENT
 RXP:LoadGuide(GUIDES[DE .. "||06-10 Durotar"]); RunTimers()
-check(SENT[#SENT] == "G^2^" .. D2 .. "^" .. DE .. "^06-10 Durotar", "leader sends: " .. tostring(SENT[#SENT]))
+check(lastSent("G^") == "G^2^" .. D2 .. "^" .. DE .. "^06-10 Durotar", "leader sends: " .. tostring(SENT[#SENT]))
 T.OnMessage("Q^2", "Bob"); RunTimers()
 local gotG = false for i = n + 2, #SENT do if SENT[i]:find("^G") then gotG = true end end
 check(gotG, "leader answers Q")
@@ -132,7 +133,7 @@ STATE.combat = true; n = #SENT
 RXP:LoadGuide(GUIDES[DE .. "||01-06 Durotar"]); RunTimers()
 check(#SENT == n, "no send in combat")
 STATE.combat = false; Fire("PLAYER_REGEN_ENABLED"); RunTimers()
-check(SENT[#SENT] == "G^2^" .. D1 .. "^" .. DE .. "^01-06 Durotar", "sent after combat")
+check(lastSent("G^") == "G^2^" .. D1 .. "^" .. DE .. "^01-06 Durotar", "sent after combat")
 -- leader: Bob (English) suggests a guide, I take it, everyone gets it
 np = #POPUPS
 T.OnMessage("P^2^" .. MAGE .. "^RestedXP Horde Mage AoE^12-17 The Barrens AoE", "Bob-Beansen")
@@ -141,7 +142,7 @@ check(POPUPS[#POPUPS].text:find("12-17 Das Brachland AoE", 1, true), "popup in m
 StaticPopupDialogs.SYNCLINE_SUGGEST.OnAccept(nil, POPUPS[#POPUPS].data); RunTimers()
 check(guide() == "RestedXP Horde Magier AoE / 12-17 Das Brachland AoE", "leader loaded it")
 check(logHas("Vorschlag von Bob übernommen"), "taken message")
-check(SENT[#SENT] == "G^2^" .. MAGE .. "^RestedXP Horde Magier AoE^12-17 Das Brachland AoE", "sent to group: " .. SENT[#SENT])
+check(lastSent("G^") == "G^2^" .. MAGE .. "^RestedXP Horde Magier AoE^12-17 Das Brachland AoE", "sent to group: " .. SENT[#SENT])
 -- leader declines
 T.OnMessage("P^2^" .. D2 .. "^" .. EN .. "^06-10 Durotar", "Bob-Beansen")
 StaticPopupDialogs.SYNCLINE_SUGGEST.OnCancel(nil, POPUPS[#POPUPS].data, "clicked"); RunTimers()
@@ -153,12 +154,11 @@ T.OnMessage("P^2^" .. D2 .. "^" .. EN .. "^06-10 Durotar", "Bob-Beansen")
 StaticPopupDialogs.SYNCLINE_SUGGEST.OnAccept(nil, POPUPS[#POPUPS].data)
 check(logHas("wird nach dem Kampf übernommen"), "take later")
 STATE.combat = false; Fire("PLAYER_REGEN_ENABLED"); RunTimers()
-check(SENT[#SENT] == "G^2^" .. D2 .. "^" .. DE .. "^06-10 Durotar", "sent after combat: " .. SENT[#SENT])
+check(lastSent("G^") == "G^2^" .. D2 .. "^" .. DE .. "^06-10 Durotar", "sent after combat: " .. SENT[#SENT])
 ---------------------------------------------------------------------------
 -- Steps
 ---------------------------------------------------------------------------
 local MAGE_DE = "^RestedXP Horde Magier AoE^12-17 Das Brachland AoE"
-local function lastSent(prefix) for i = #SENT, 1, -1 do if SENT[i]:find(prefix, 1, true) == 1 then return SENT[i] end end end
 RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
 check(T.MyStep() == 1, "my step")
 -- leader: my step changes -> T to the group
@@ -273,6 +273,68 @@ snap = ns.Snapshot(); for _, m in ipairs(snap.members) do if m.name == "Bob-Bean
 check(bob.state == "same", "English Bob in the imported guide counts as same: " .. tostring(bob.state))
 RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
 
+---------------------------------------------------------------------------
+-- RestedXP route settings
+---------------------------------------------------------------------------
+local P = RXP.settings.profile
+check(ns.MyRoute() == "a=0;r=1.00;x=1;g=1;f=0;d=DM,RFC", "my route: " .. tostring(ns.MyRoute()))
+-- member: the leader has other dungeons and no overleveled skipping
+STATE.me = "Me"
+local r0 = RELOADS
+T.OnMessage("W^2^a=0;r=1.00;x=0;g=1;f=0;d=DM,SFK,WC", "Leader Beansen"); RunTimers()
+check(P.enableXpStepSkipping == false and P.dungeons.SFK == true and P.dungeons.WC == true and P.dungeons.RFC == false,
+      "member took the leader's route settings")
+check(RELOADS == r0 + 1, "RestedXP reloads the guide once")
+check(logHas("übernommen: Überlevelte Schritte überspringen, Dungeons"), "says what changed")
+check(lastSent("V^") == "V^2^a=0;r=1.00;x=0;g=1;f=0;d=DM,SFK,WC", "tells the group: " .. tostring(lastSent("V^")))
+-- same again: nothing to do
+r0 = RELOADS
+T.OnMessage("W^2^a=0;r=1.00;x=0;g=1;f=0;d=DM,SFK,WC", "Leader"); RunTimers()
+check(RELOADS == r0, "same settings: no reload")
+-- only the leader
+T.OnMessage("W^2^a=0;r=1.00;x=1;g=1;f=0;d=", "Bob-Beansen"); RunTimers()
+check(P.enableXpStepSkipping == false, "only the leader's settings count")
+-- automatic EXP rate: the rate itself isn't compared
+P.enableAutomaticXpRate = true; P.xprate = 1.35
+check(not ns.MyRoute():find("r=", 1, true), "automatic rate not sent")
+P.enableAutomaticXpRate = false; P.xprate = 1
+-- ask mode
+SlashCmdList.SYNCLINE("fragen")
+T.OnMessage("W^2^a=0;r=1.00;x=1;g=1;f=0;d=DM,SFK,WC", "Leader"); RunTimers()
+check(P.enableXpStepSkipping == false and POPUPS[#POPUPS].which == "SYNCLINE_ROUTE", "asks first")
+check(POPUPS[#POPUPS].text:find("Überlevelte Schritte", 1, true), "popup says what differs")
+StaticPopupDialogs.SYNCLINE_ROUTE.OnAccept(nil, POPUPS[#POPUPS].data); RunTimers()
+check(P.enableXpStepSkipping == true, "accepted")
+SlashCmdList.SYNCLINE("auto")
+-- switched off
+ns.db.followRoute = false
+T.OnMessage("W^2^a=0;r=1.00;x=0;g=1;f=0;d=DM", "Leader"); RunTimers()
+check(P.enableXpStepSkipping == true and P.dungeons.SFK == true, "followRoute off")
+ns.db.followRoute = true
+-- in combat: afterwards
+STATE.combat = true
+T.OnMessage("W^2^a=0;r=1.00;x=1;g=0;f=0;d=DM,SFK,WC", "Leader"); RunTimers()
+check(P.enableGroupQuests == true, "waits in combat")
+STATE.combat = false; Fire("PLAYER_REGEN_ENABLED"); RunTimers()
+check(P.enableGroupQuests == false, "after combat")
+-- leader side
+STATE.me = "Leader"
+P.enableGroupQuests = true
+T.CheckRoute(); RunTimers()
+check(lastSent("W^") == "W^2^" .. ns.MyRoute(), "leader's change goes to the group: " .. tostring(lastSent("W^")))
+local w0 = #SENT
+T.CheckRoute(); RunTimers()
+check(#SENT == w0, "no change: nothing sent")
+-- Bob has other dungeons: the window shows it
+T.OnMessage("V^2^a=0;r=1.00;x=1;g=1;f=0;d=DM", "Bob Beansen")
+snap = ns.Snapshot(); for _, m in ipairs(snap.members) do if m.name == "Bob-Beansen" then bob = m end end
+check(bob.routeDiff and bob.routeDiff[1] == "Dungeons", "Bob's other dungeons")
+SlashCmdList.SYNCLINE("status")
+check(logHas("andere Einstellungen: Dungeons"), "status line")
+-- the guide brings the settings along
+ns.Actions.Send(); RunTimers()
+check(lastSent("W^") == "W^2^" .. ns.MyRoute(), "sent with the guide")
+
 -- "Guide sent" in the chat only when it's news
 local function sentLines(from) local n = 0 for i = from, #LOG do if LOG[i]:find("Guide an die Gruppe geschickt", 1, true) then n = n + 1 end end return n end
 local l0, s0 = #LOG + 1, #SENT
@@ -303,10 +365,13 @@ check(SynclineGroupFrame:IsShown(), "/sl opens the group window")
 check(TextShown("06-10 Durotar"), "window shows the group guide")
 check(TextShown("Schritt skippen") and TextShown("Alle zu mir") and TextShown("Guide senden"), "leader buttons (German)")
 check(TextShown("Schritt des Leiters"), "leader's step in the window")
+-- (Bob is in another guide right now: that shows first; settings show when the guide is the same)
 check(TextShown("Bob"), "window lists Bob")
 -- the window follows changes
 T.OnMessage("S^2^" .. D1 .. "^" .. EN .. "^01-06 Durotar", "Bob-Beansen"); RunTimers()
 check(TextShown("anderer Guide: 01-06 Durotar"), "window updates")
+T.OnMessage("S^2^" .. MAGE .. "^^^1^20", "Bob-Beansen"); RunTimers()
+check(TextShown("Einstellungen anders"), "same guide, other settings: marked")
 ns.HandleClick("LeftButton")
 check(not SynclineGroupFrame:IsShown(), "left click closes it again")
 ns.HandleClick("RightButton")

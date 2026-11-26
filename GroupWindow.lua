@@ -42,6 +42,17 @@ local function Row(i)
     r.step:SetWordWrap(false)
     r.state = T.Text(r, "", 12, C.muted, true)
     r.state:SetPoint("LEFT", 250, 0)
+    -- hover: which route settings differ
+    r:EnableMouse(true)
+    r:SetScript("OnEnter", function(self)
+        if not self.diff or #self.diff == 0 then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(L["RestedXP route settings"])
+        GameTooltip:AddLine(L["Different from the leader:"], C.muted[1], C.muted[2], C.muted[3])
+        for _, d in ipairs(self.diff) do GameTooltip:AddLine("  " .. d, C.warn[1], C.warn[2], C.warn[3]) end
+        GameTooltip:Show()
+    end)
+    r:SetScript("OnLeave", function() GameTooltip:Hide() end)
     r.state:SetPoint("RIGHT", -10, 0)
     r.state:SetWordWrap(false)
     rows[i] = r
@@ -154,7 +165,13 @@ function W:Refresh()
         local name = m.name:gsub("%-.*", "")
         local lead = m.lead and ("  |cff" .. T.Hex(C.faint) .. L.STATUS_LEADER .. "|r") or ""
         r.name:SetText("|cff" .. T.ClassHex(m.class) .. name .. "|r" .. lead)
-        r.state:SetText(ns.STATE_TEXT[m.state](m))
+        r.diff = m.routeDiff
+        -- another guide matters more than other settings
+        if m.state == "same" and m.routeDiff and #m.routeDiff > 0 then
+            r.state:SetText("|cff" .. T.Hex(C.warn) .. L["settings differ"] .. "|r")
+        else
+            r.state:SetText(ns.STATE_TEXT[m.state](m))
+        end
         local step = ""
         if m.step then
             step = m.step .. "/" .. (m.total or "?")
