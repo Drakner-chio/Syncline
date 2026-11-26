@@ -11,6 +11,7 @@
 - **Skip check:** before you skip, Syncline shows whether follow-up quests hang on the step – green: safe to skip, orange/red: these quests would be gone for the whole group
 - **Ask for a skip:** members ask the leader to skip their step – he gets a popup and decides
 - **Same route settings:** dungeons, skipping overleveled steps, group quests, Solo Self Found and the EXP rate decide which steps a guide has. The leader's settings go to the group, so everyone has the same steps
+- **Slack meter** (leader only): who keeps the group waiting – time spent behind the leader's step, with a ranking, titles and a button to post it in the group chat
 - **Suggest a guide:** pick another guide yourself and Syncline offers to suggest it to the leader. One click on *Take it*, and the whole group switches
 - **Your way** (`/sl options`): switch right away or get asked first, let the leader move your step or not, minimap button, window size
 - **Safe:** nothing switches in combat – it waits until combat ends

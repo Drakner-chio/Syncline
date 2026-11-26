@@ -1,5 +1,12 @@
 # Syncline
 
+## 0.9.0
+- Bummel-Meter (nur für den Leiter): Im Gruppenfenster steht, wie lange die Gruppe auf wen gewartet hat, also die Zeit, die jemand hinter dem Schritt des Leiters war. Dazu die Zeit pro Schritt.
+  - Rangliste mit Balken, Titel für den Spitzenreiter: Blumenpflücker (ab 2 Min.), Tourist (ab 10 Min.), Schnecke der Session (ab 30 Min.).
+  - Zählt nicht, solange der Leiter im Kampf oder AFK ist, nicht im Gruppen-Guide ist oder das Mitglied offline ist.
+  - „Posten“ schreibt die Rangliste in den Gruppenchat, „Reset“ fängt neu an. Wer eine Minute keiner Gruppe angehört, startet automatisch eine neue Session.
+  - Mitglieder schicken dafür nichts zusätzlich, der Leiter rechnet aus den Schritten, die er ohnehin bekommt. In den Einstellungen abschaltbar.
+
 ## 0.8.0
 - Skip-Check: Syncline zeigt, ob ein Schritt sicher übersprungen werden kann. Es liest aus dem Guide, welche Quests der Schritt betrifft und welche Folgequests daran hängen (Bedingungen wie „nur wenn Quest X abgegeben“ und Quests, die bei der Abgabe angenommen werden, mehrere Ebenen tief).
   - Grün „sicher zu skippen“: keine Folgequests. Orange: 1–2 Folgequests. Rot: eine längere Kette.

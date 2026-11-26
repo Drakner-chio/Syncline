@@ -8,6 +8,7 @@ assert(loadfile("Locale.lua"))("Syncline", ns)
 assert(loadfile("GuideMap.lua"))("Syncline", ns)
 assert(loadfile("Theme.lua"))("Syncline", ns)
 assert(loadfile("Core.lua"))("Syncline", ns)
+assert(loadfile("Slack.lua"))("Syncline", ns)
 assert(loadfile("GroupWindow.lua"))("Syncline", ns)
 assert(loadfile("Options.lua"))("Syncline", ns)
 local T = ns.test
@@ -452,6 +453,55 @@ ns.GroupWindow:Refresh(); RunTimers()
 check(TextShown("3 Folgequest(s)"), "window: skip check line")
 SlashCmdList.SYNCLINE("")   -- close again
 RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
+
+---------------------------------------------------------------------------
+-- Slack meter (leader only)
+---------------------------------------------------------------------------
+local Slack = ns.Slack
+Slack:Reset()
+RXP.SetStep(10); RunTimers()                     -- leader at line 30
+local function behind(name, step, line) T.OnMessage("T^2^" .. step .. "^20^" .. line, name) end
+T.OnMessage("S^2^" .. MAGE .. "^^^7^20^21", "Bob Beansen")     -- Bob 3 behind
+T.OnMessage("S^2^" .. MAGE .. "^^^10^20^30", "Fluffy-Shocks")  -- Fluffy with me
+for _ = 1, 5 do Slack:Tick() end
+local rank = Slack:Ranking()
+check(rank[1].name == "Bob" and rank[1].waited == 10, "Bob waited 10 s: " .. rank[1].name .. " " .. rank[1].waited)
+check(rank[2].name == "Fluffy" and rank[2].waited == 0, "Fluffy didn't keep anyone waiting")
+-- paused: leader in combat, leader AFK, Bob offline
+STATE.combat = true; Slack:Tick(); STATE.combat = false
+AFK = true; Slack:Tick(); AFK = false
+OFFLINE.party1 = true; Slack:Tick(); OFFLINE.party1 = nil
+check(Slack:Ranking()[1].waited == 10, "combat, AFK, offline don't count")
+-- Bob catches up: no more waiting, steps counted
+behind("Bob Beansen", 10, 30); Slack:Tick(); Slack:Tick()
+rank = Slack:Ranking()
+check(rank[1].waited == 10 and rank[1].perStep, "caught up: waiting stops, per step known")
+-- titles
+ns.db.slack.members.Bob.waited = 11 * 60
+check(Slack:Title(11 * 60) == "Tourist" and Slack:Title(31 * 60) == "Schnecke der Session" and Slack:Title(60) == nil, "titles")
+local lines = Slack:ChatLines()
+check(lines[2] == "1. Bob 11:00 – Tourist", "chat line: " .. tostring(lines[2]))
+Slack:Post()
+check(CHAT[1] and CHAT[1]:find("^PARTY: Syncline Bummel%-Meter") and CHAT[2] == "PARTY: 1. Bob 11:00 – Tourist", "posted: " .. tostring(CHAT[2]))
+-- the window shows it, for the leader only
+if not ns.GroupWindow:IsShown() then SlashCmdList.SYNCLINE("") end
+ns.GroupWindow:Refresh()
+check(TextShown("BUMMEL-METER"), "window card title"); check(TextShown("11:00"), "window card time")
+-- a member: nothing counted
+STATE.me = "Me"
+local before = ns.db.slack.members.Bob.waited
+behind("Bob Beansen", 5, 15); Slack:Tick()
+check(ns.db.slack.members.Bob.waited == before, "members don't count")
+STATE.me = "Leader"
+-- switched off
+ns.db.slackMeter = false; behind("Bob Beansen", 5, 15); Slack:Tick()
+check(ns.db.slack.members.Bob.waited == before, "switched off")
+ns.db.slackMeter = true
+-- out of the group for a minute: new session
+STATE.group = false; Slack:Tick(); NOW = NOW + 61; Slack:Tick()
+check(next(ns.db.slack.members) == nil, "reset after leaving the group")
+NOW = NOW + 1; STATE.group = true; Fire("GROUP_ROSTER_UPDATE"); RunTimers()
+SlashCmdList.SYNCLINE("")   -- close the window again
 
 -- the windows
 SlashCmdList.SYNCLINE(""); RunTimers()

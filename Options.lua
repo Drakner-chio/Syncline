@@ -62,12 +62,17 @@ local function Build()
 
     -- General
     y = y - 138
-    local gen = T.Card(frame, "General", PAD, y, cw, 92)
+    local gen = T.Card(frame, "General", PAD, y, cw, 118)
     controls[#controls + 1] = T.Switch(gen, "Minimap button", 16, -34,
         function() return ns.db.minimapButton end,
         function(v) ns.db.minimapButton = v; ns.UpdateMinimapButton() end)
+    controls[#controls + 1] = T.Switch(gen, "Slack meter (only you see it, as leader)", 16, -60,
+        function() return ns.db.slackMeter end,
+        function(v) ns.db.slackMeter = v; ns.GroupWindow:Refresh() end)
+    T.Tooltip(controls[#controls], "Slack meter",
+        "In the group window: how long the group waited for whom – time someone was behind your step. Doesn't count while you're in combat or away, or while they're offline.")
     local found = T.Text(gen, "", 11, C.faint, true)
-    found:SetPoint("TOPLEFT", 16, -64)
+    found:SetPoint("TOPLEFT", 16, -90)
     controls[#controls + 1] = { Refresh = function()
         local rxp = C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("RXPGuides")
         found:SetText(L["RestedXP Guides: %s"]:format(rxp and ("|cff5cd97a" .. L["found"] .. "|r")
@@ -78,7 +83,7 @@ local function Build()
     hint:SetText("/sl " .. L.CMD_OPTIONS .. "  ·  /sl " .. L.CMD_HELP .. "  ·  v" .. tostring(ns.VERSION))
     hint:SetPoint("BOTTOMLEFT", PAD + 2, 12)
 
-    frame:SetHeight(-y + 92 + 40)
+    frame:SetHeight(-y + 118 + 40)
     frame:SetScript("OnShow", function() O:Refresh() end)
 end
 
@@ -221,5 +226,6 @@ end
 
 ns.OnLoaded = function()
     ns.UpdateMinimapButton()
+    if ns.Slack then ns.Slack:Start() end
     RegisterSettings()
 end

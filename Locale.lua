@@ -244,6 +244,19 @@ if GetLocale() == "deDE" then
         ["As leader: send my route settings to the group"] = "Als Leiter: meine Routeneinstellungen an die Gruppe senden",
         ["Different from the leader:"] = "Anders als beim Leiter:",
         ["Skip check"] = "Skip-Check",
+        ["Slack meter"] = "Bummel-Meter",
+        ["Snail of the session"] = "Schnecke der Session",
+        ["Tourist"] = "Tourist",
+        ["Flower picker"] = "Blumenpflücker",
+        ["Syncline slack meter (time the group waited):"] = "Syncline Bummel-Meter (so lange hat die Gruppe gewartet):",
+        ["Nobody kept the group waiting yet."] = "Bisher musste die Gruppe auf niemanden warten.",
+        ["Post"] = "Posten",
+        ["Posts the ranking in the group chat."] = "Postet die Rangliste in den Gruppenchat.",
+        ["Reset"] = "Reset",
+        ["Ø %s/step"] = "Ø %s/Schritt",
+        ["Slack meter (only you see it, as leader)"] = "Bummel-Meter (nur du siehst es, als Leiter)",
+        ["In the group window: how long the group waited for whom – time someone was behind your step. Doesn't count while you're in combat or away, or while they're offline."] =
+            "Im Gruppenfenster: wie lange die Gruppe auf wen gewartet hat, also die Zeit, die jemand hinter deinem Schritt war. Zählt nicht, solange du im Kampf oder AFK bist oder jemand offline ist.",
     }
     for k, v in pairs(de) do L[k] = v end
 end

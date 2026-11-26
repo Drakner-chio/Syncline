@@ -164,3 +164,12 @@ end
 function RXP.SetStep(n) RXPCData.currentStep = n end
 
 function UnitExists(u) return u == "player" or u == "party1" or u == "party2" end
+
+NOW = 1000
+function GetTime() return NOW end
+AFK = false
+function UnitIsAFK() return AFK end
+OFFLINE = {}
+function UnitIsConnected(u) return not OFFLINE[u] end
+CHAT = {}
+function SendChatMessage(text, channel) CHAT[#CHAT + 1] = channel .. ": " .. text end

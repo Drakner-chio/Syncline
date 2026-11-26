@@ -42,6 +42,7 @@ local DEFAULTS = {
     followSteps = true,    -- the leader may skip steps for me / pull me to his step
     followRoute = true,    -- take the leader's RestedXP route settings (dungeons, ...)
     shareRoute = true,     -- leader: send my route settings to the group
+    slackMeter = true,     -- leader: who keeps the group waiting (Slack.lua)
     minimapButton = true,
     minimapAngle = 200,
     locked = false,        -- windows can't be dragged
@@ -1256,6 +1257,7 @@ function ns.Snapshot()
             name = m.name, class = Plain(class), me = me,
             lead = Plain(UnitIsGroupLeader(m.unit)) and true or false,
             state = state, guide = guide, step = step, total = total, line = line,
+            unit = m.unit, connected = Plain(UnitIsConnected and UnitIsConnected(m.unit)) ~= false,
         }
         if member.lead then snap.leaderStep, snap.leaderTotal, snap.leaderLine = step, total, line end
         snap.members[#snap.members + 1] = member

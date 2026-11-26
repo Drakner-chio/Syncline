@@ -140,6 +140,8 @@ local function Build()
     Button("request", "Request skip", "Asks the leader to skip your current step for the whole group.",
         function() ns.Actions.RequestSkip() end, false)
 
+    if ns.Slack then ns.Slack:Attach(frame, PAD, cw) end
+
     local hint = T.Text(frame, "", 11, C.faint, true)
     hint:SetText("/sl  ·  /sl " .. L.CMD_HELP .. "  ·  v" .. tostring(ns.VERSION))
     hint:SetPoint("BOTTOMLEFT", PAD + 2, 12)
@@ -217,7 +219,9 @@ function W:Refresh()
 
     -- buttons: the leader skips, pulls and sends, members fetch, suggest, ask for a skip
     local top = 40 + GUIDE_H + 8
-    local y = -top - listH - 10
+    local slackH = ns.Slack and ns.Slack:Layout(-top - listH - 8, snap) or 0
+    if slackH > 0 then slackH = slackH + 8 end
+    local y = -top - listH - slackH - 10
     for _, b in pairs(buttons) do b:Hide() end
     local row
     if snap.inGroup and snap.isLeader then
@@ -235,7 +239,7 @@ function W:Refresh()
         end
     end
     local buttonsH = row and 34 or 0
-    frame:SetHeight(top + listH + 10 + buttonsH + 30)
+    frame:SetHeight(top + listH + slackH + 10 + buttonsH + 30)
 end
 
 function W:ApplySettings(resetPosition)
