@@ -317,6 +317,7 @@ if GetLocale() == "deDE" then
         ["All quests in the log"] = "Alle Quests im Log",
         ["Per hour"] = "Pro Stunde",
         ["measuring ..."] = "wird gemessen …",
+        ["no experience in the last 30 min"] = "keine EP in den letzten 30 Min.",
         ["Turning in the ready quests is enough for the level-up!"] = "Die abgabebereiten Quests reichen für den Level-Up!",
         ["Level-up in"] = "Level-Up in",
         ["After turning in"] = "Nach den Abgaben",

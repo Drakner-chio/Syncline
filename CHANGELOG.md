@@ -1,5 +1,10 @@
 # Syncline
 
+## 0.12.1
+- Fix: Gekaufte Guides mit Kapitelnummer statt Levelbereich (z. B. „11. The Drowned Capitals“ / „11. Die Ertrunkenen Hauptstädte“) wurden bei gemischten Sprachen als „anderer Guide“ angezeigt und nicht übernommen. Der Fingerabdruck nimmt jetzt auch die Kapitelnummer, und ohne Nummer allein die Quests.
+- EP pro Stunde zeigt „–“ statt „0/h“, solange in den letzten 30 Minuten keine EP dazukamen.
+- Versionsanzeige: „v0.12.1“ statt „vv0.12.1“ in Release-Builds.
+
 ## 0.12.0
 - Warum geht der Schritt nicht? Syncline prüft den aktuellen Schritt und nennt den Grund:
   - Vorquest noch nicht abgegeben (mit Schritt)

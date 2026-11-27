@@ -34,6 +34,7 @@ local CHAT_PREFIX = (ns.Theme and ns.Theme.CHAT_PREFIX or "|cff4fc3f7Syncline|r"
 
 ns.VERSION = (C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata(ADDON, "Version")) or "dev"
 if ns.VERSION:find("@", 1, true) then ns.VERSION = "dev" end
+ns.VERSION = ns.VERSION:gsub("^[vV]", "")   -- release builds say "v0.12.0"
 
 local DEFAULTS = {
     enabled = true,        -- follow the leader's guide
@@ -226,9 +227,15 @@ end
 local FP_QUESTS = 10
 local fpCache = {}      -- [group^name] = fingerprint or false
 
+-- What a guide's name starts with, the same in every language:
+-- "43-44 Flusslande II" -> "43-44", "11. The Drowned Capitals" -> "c11", else "".
 local function Range(name)
-    local a, b = tostring(name or ""):match("^0*(%d+)%-0*(%d+)")
+    name = tostring(name or "")
+    local a, b = name:match("^%s*0*(%d+)%s*%-%s*0*(%d+)")
     if a then return a .. "-" .. b end
+    local c = name:match("^%s*0*(%d+)[%.%s:)]")
+    if c then return "c" .. c end
+    return ""
 end
 
 local function QuestIDs(guide)
@@ -260,14 +267,14 @@ local function Fingerprint(guide, group, name)
     local key = Key(group, name)
     if fpCache[key] ~= nil then return fpCache[key] or nil end
     local range = Range(name)
-    local ids = range and QuestIDs(Parsed(guide)) or {}
+    local ids = QuestIDs(Parsed(guide))
     local fp = (#ids > 0) and ("q:" .. range .. ":" .. table.concat(ids, ".")) or false
     fpCache[key] = fp
     return fp or nil
 end
 
 local function ParseFingerprint(fp)
-    local range, list = tostring(fp or ""):match("^q:([%d%-]+):([%d%.]+)$")
+    local range, list = tostring(fp or ""):match("^q:([%w%-]*):([%d%.]+)$")
     if not range then return nil end
     local ids = {}
     for q in list:gmatch("%d+") do ids[tonumber(q)] = true end
@@ -294,6 +301,8 @@ local function FindByFingerprint(fp)
     if not range or not rxp or type(rxp.guides) ~= "table" then return end
     local best, bestScore, candidates, only = nil, 0, 0, nil
     for _, guide in pairs(rxp.guides) do
+        -- a name without level range or number: compare quests, but only so many guides
+        if candidates >= 80 then break end
         if type(guide) == "table" and guide.name and guide.group and Range(guide.name) == range then
             candidates = candidates + 1
             only = guide
@@ -304,7 +313,7 @@ local function FindByFingerprint(fp)
     end
     if best and bestScore >= 0.5 then return best end
     -- one guide for this level range whose quests we can't read: that one
-    if candidates == 1 and not Fingerprint(only, only.group, only.name) then return only end
+    if range ~= "" and candidates == 1 and not Fingerprint(only, only.group, only.name) then return only end
 end
 
 -- The guide the leader means, as it is called on my client: guide table, group, name

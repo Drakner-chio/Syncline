@@ -266,6 +266,15 @@ T.OnMessage("G^2^q:43-44:1.2.3^RestedXP Forever Guide (H)^43-44 Somewhere", "Lea
 local missing = 0
 for i = nlog + 1, #LOG do if LOG[i]:find("gibt es bei dir nicht", 1, true) then missing = missing + 1 end end
 check(missing == 1, "missing message only once: " .. missing)
+-- chapter guides: "11. The Drowned Capitals" (English) is our "11. Die Ertrunkenen Hauptstädte"
+T.OnMessage("G^2^q:c11:8101.8102.8103.8104^RestedXP Forever Guide (H)^11. The Drowned Capitals", "Leader")
+check(guide() == DE .. " / 11. Die Ertrunkenen Hauptstädte", "chapter guide: " .. guide())
+-- a guide without any number: by its quests alone
+T.OnMessage("G^2^q::8301.8302^RestedXP Forever Guide (H)^Bonus: Fishing", "Leader")
+check(guide() == DE .. " / Bonus: Angeln", "no number, by quests: " .. guide())
+-- and not just any guide without number when the quests don't match
+T.OnMessage("G^2^q::1.2.3^RestedXP Forever Guide (H)^Something Else", "Leader")
+check(guide() == DE .. " / Bonus: Angeln", "no match without number: stays")
 -- my imported guide: I send its fingerprint, and the status counts as same
 RXP:LoadGuide(GUIDES[DE .. "||43-44 Flusslande II"]); RunTimers()
 local mine = T.Mine()

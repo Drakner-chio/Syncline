@@ -209,7 +209,8 @@ function X:Tooltip(r)
     GameTooltip:AddDoubleLine(L["Ready to turn in"], Short(d.ready), C.muted[1], C.muted[2], C.muted[3],
         C.good[1], C.good[2], C.good[3])
     GameTooltip:AddDoubleLine(L["All quests in the log"], Short(d.all), C.muted[1], C.muted[2], C.muted[3], 1, 1, 1)
-    GameTooltip:AddDoubleLine(L["Per hour"], d.rate and Short(d.rate) or L["measuring ..."],
+    GameTooltip:AddDoubleLine(L["Per hour"], (d.rate == nil and L["measuring ..."])
+        or (d.rate <= 0 and L["no experience in the last 30 min"]) or Short(d.rate),
         C.muted[1], C.muted[2], C.muted[3], 1, 1, 1)
     if d.max > 0 then
         if d.ready >= missing and d.ready > 0 then
@@ -258,7 +259,7 @@ function X:Layout(y, snap)
                 r.quest:SetColorTexture(C.good[1], C.good[2], C.good[3], 0.55)
                 local missing, t, after = X:Times(d)
                 r.barText:SetText(L["%s missing"]:format(Short(missing)))
-                local right = d.rate and (Short(d.rate) .. L["/h"]) or "–"
+                local right = (d.rate and d.rate > 0) and (Short(d.rate) .. L["/h"]) or "–"
                 if after == 0 and d.ready > 0 then
                     right = right .. "  |cff" .. T.Hex(C.good) .. L["turn in!"] .. "|r"
                 elseif t then

@@ -152,7 +152,13 @@ end
 RIVER_IDS = { 9001, 9002, 9003, 9004, 9005, 9006, 9007, 9008, 9009, 9010, 9011 }
 GUIDES[DE .. "||43-44 Flusslande II"] = { group = DE, name = "43-44 Flusslande II", key = "fl2", imported = true }
 GUIDES[DE .. "||43-44 Sümpfe des Elends"] = { group = DE, name = "43-44 Sümpfe des Elends", key = "se", imported = true }
-PARSED = { fl2 = Quests(RIVER_IDS), se = Quests({ 7001, 7002, 7003, 7004, 7005 }) }
+-- chapter guides ("11. ..."): numbered, no level range
+GUIDES[DE .. "||11. Die Ertrunkenen Hauptstädte"] = { group = DE, name = "11. Die Ertrunkenen Hauptstädte", key = "c11", imported = true }
+GUIDES[DE .. "||12. Der Sumpf"] = { group = DE, name = "12. Der Sumpf", key = "c12", imported = true }
+GUIDES[DE .. "||Bonus: Angeln"] = { group = DE, name = "Bonus: Angeln", key = "fish", imported = true }
+PARSED = { fl2 = Quests(RIVER_IDS), se = Quests({ 7001, 7002, 7003, 7004, 7005 }),
+           c11 = Quests({ 8101, 8102, 8103, 8104 }), c12 = Quests({ 8201, 8202, 8203 }),
+           fish = Quests({ 8301, 8302 }) }
 FETCHES = 0
 function RXP:FetchGuide(guide)
     FETCHES = FETCHES + 1
