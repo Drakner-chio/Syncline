@@ -5,7 +5,13 @@
 -- share, experience, slack meter, and small buttons. Which lines show is
 -- set in the strip's cog menu; each line only shows when it has something.
 --
--- Works with RestedXP's classic window (RXPFrame) and the new V2 window.
+-- Works with RestedXP's classic window (RXPFrame), the new V2 window and
+-- EUI-RestedXP's reskin: that one keeps RXPFrame alive but invisible and
+-- draws its own window (EUIRestedXPTimeline), with RestedXP's target and
+-- item boxes glued under it. The strip then hangs under those boxes (over
+-- them when EUI grows upwards) and takes EllesmereUI's look: its font with
+-- an outline, the dark step card with the hairline edge, the orange of
+-- "STEP 1", buttons in the EUI accent.
 
 local ADDON, ns = ...
 local L, T = ns.L, ns.Theme
@@ -13,7 +19,7 @@ local C = T.C
 local D = {}
 ns.Dock = D
 
-local LINE_H, MAX_LINES = 15, 14
+local LINE_H, MAX_LINES = 15, 14   -- LINE_H follows the font size, see Refresh
 D.LINES = { "group", "groupstep", "progress", "missing", "travel", "share", "xp", "slack", "buttons" }
 local LINE_LABEL = {
     group = "Group at a glance", groupstep = "Group step", progress = "Quest progress",
@@ -57,7 +63,25 @@ local function RXP()
     return ns.Missing and ns.Missing.RXP and ns.Missing.RXP()
 end
 
+-- EUI-RestedXP's own window, when it is what's on screen
+local function EUIDB() return type(_G.EUIRestedxPCache) == "table" and _G.EUIRestedxPCache or nil end
+function D:EUIWindow()
+    local w, rxpf = _G.EUIRestedXPTimeline, _G.RXPFrame
+    if not (w and w.IsShown and w:IsShown()) then return nil end
+    local db = EUIDB()
+    if db and (db.rxpEnabled == false or db.rxpLayout == "DEFAULT") then return nil end
+    if rxpf and rxpf.GetAlpha and rxpf:GetAlpha() ~= 0 then return nil end
+    return w
+end
+local FLIP = { FRAMELESS = true, TIMELINE = true, RAIL = true, COMPACT = true }
+local function EUIFlip()
+    local db = EUIDB()
+    return db and db.rxpFlip == true and FLIP[db.rxpLayout or "FRAMELESS"] and true or false
+end
+
 function D:Anchor()
+    local eui = D:EUIWindow()
+    if eui then return eui end
     local rxp = RXP()
     local v2 = rxp and rxp.v2
     if v2 and v2.IsEnabled and v2.GetGuideWindowAnchorFrame then
@@ -74,9 +98,48 @@ end
 function D:Side()
     local side = ns.db and ns.db.dockSide or "auto"
     if side == "below" or side == "above" then return side end
+    if D:EUIWindow() then return EUIFlip() and "above" or "below" end
     local rxp = RXP()
     local p = rxp and rxp.settings and rxp.settings.profile
     return (p and p.anchorOrientation == "bottom") and "above" or "below"
+end
+
+---------------------------------------------------------------------------
+-- The look: ours, or EllesmereUI's when it's there
+---------------------------------------------------------------------------
+function D:Style()
+    local mode = ns.db and ns.db.dockStyle or "auto"
+    local E = _G.EllesmereUI
+    if mode == "syncline" or not E then
+        return { eui = false, font = T.FONT, flags = "", size = 11, label = C.muted,
+                 bg = C.win, edge = C.edge }
+    end
+    local font
+    if type(E.GetFontPath) == "function" then
+        local ok, p = pcall(E.GetFontPath, nil)
+        if ok and type(p) == "string" then font = p end
+    end
+    font = font or "Interface\\AddOns\\EUI-RestedXP\\Fonts\\Expressway.ttf"
+    local db = EUIDB() or {}
+    local g = E.ELLESMERE_GREEN
+    local accent = g and { g.r or 0.05, g.g or 0.82, g.b or 0.62, 1 } or { 0.05, 0.82, 0.62, 1 }
+    return {
+        eui = true, font = font, flags = "OUTLINE", size = db.rxpFlTextSize or 12,
+        label = { db.rxpFlStepColR or 0.91, db.rxpFlStepColG or 0.64, db.rxpFlStepColB or 0.24 },
+        bg = { 0, 0, 0, (db.rxpFlCardA or 65) / 100 },
+        edge = { db.rxpFlBorderR or 1, db.rxpFlBorderG or 1, db.rxpFlBorderB or 1, db.rxpFlBorderA or 0.07 },
+        accent = accent,
+    }
+end
+
+local function SetFont(fs, st, size)
+    if not (fs and fs.SetFont) then return end
+    local ok = pcall(fs.SetFont, fs, st.font, size or st.size, st.flags)
+    if not ok then pcall(fs.SetFont, fs, T.FONT, size or st.size, "") end
+    if st.eui then
+        if fs.SetShadowOffset then fs:SetShadowOffset(1, -1) end
+        if fs.SetShadowColor then fs:SetShadowColor(0, 0, 0, 0.8) end
+    end
 end
 
 ---------------------------------------------------------------------------
@@ -272,7 +335,12 @@ local function BuildMenu()
         function() return ns.db.dockSide or "auto" end,
         function(v) ns.db.dockSide = v; D:Refresh() end, 66)
     menu.side = side
-    menu:SetSize(240, -y + 60)
+    local look = T.Choice(menu, "Look", 14, y - 54,
+        { { "auto", "Auto" }, { "syncline", "Syncline" } },
+        function() return ns.db.dockStyle or "auto" end,
+        function(v) ns.db.dockStyle = v; D:Refresh() end, 100)
+    menu.look = look
+    menu:SetSize(240, -y + 110)
     menu:Hide()
 end
 
@@ -286,11 +354,12 @@ function D:ToggleMenu()
     menu:Show()
     for _, sw in ipairs(menu.switches) do sw:Refresh() end
     menu.side.Refresh()
+    menu.look.Refresh()
 end
 
 local function Build()
     dock = CreateFrame("Frame", "SynclineDock", UIParent)
-    T.Fill(dock, C.win)
+    dock.bg = T.Fill(dock, C.win)
     T.Border(dock, C.edge)
     dock:EnableMouse(true)
 
@@ -299,11 +368,14 @@ local function Build()
     header:SetPoint("TOPLEFT", 8, -4)
     header:SetPoint("TOPRIGHT", -26, -4)
     local logo = header:CreateTexture(nil, "ARTWORK")
+    header.logo = logo
     logo:SetSize(12, 12)
     logo:SetPoint("LEFT", 0, 0)
     logo:SetTexture(T.LOGO)
-    header.title = T.Text(header, "", 10, C.muted, true)
-    header.title:SetPoint("LEFT", logo, "RIGHT", 5, 0)
+    header.label = T.Text(header, "", 10, C.muted, true)
+    header.label:SetPoint("LEFT", logo, "RIGHT", 5, 0)
+    header.title = T.Text(header, "", 10, C.faint, true)
+    header.title:SetPoint("LEFT", header.label, "RIGHT", 6, 0)
     header.title:SetPoint("RIGHT", 0, 0)
     header.title:SetWordWrap(false)
     header:SetScript("OnClick", function() ns.GroupWindow:Toggle() end)
@@ -330,23 +402,64 @@ local function Build()
     dock:Hide()
 end
 
+-- what the strip hangs from: the window itself, or with EUI the lowest
+-- (highest when it grows upwards) of RestedXP's boxes it glued to the window
+local function Holder(a, side)
+    if a ~= D:EUIWindow() then return a end
+    local db = EUIDB()
+    if db and db.rxpBoxLock == false then return a end   -- boxes placed freely
+    local best = a
+    for _, f in ipairs({ _G.RXPTargetFrame, _G.RXPItemFrame }) do
+        local alpha = f and f.GetAlpha and f:GetAlpha()
+        if f and f.IsShown and f:IsShown() and not (type(alpha) == "number" and alpha <= 0) then
+            if side == "below" then
+                local b, bb = f.GetBottom and f:GetBottom(), best.GetBottom and best:GetBottom()
+                if type(b) == "number" and type(bb) == "number" and b < bb then best = f end
+            else
+                local t, bt = f.GetTop and f:GetTop(), best.GetTop and best:GetTop()
+                if type(t) == "number" and type(bt) == "number" and t > bt then best = f end
+            end
+        end
+    end
+    return best
+end
+
 -- dock to the RestedXP window; nil when there is none or it's hidden
 local function Dock()
     local a = D:Anchor()
     if not a then return nil end
-    if a ~= anchorFrame or dock.side ~= D:Side() then
-        anchorFrame = a
-        dock.side = D:Side()
-        dock:SetParent(a)          -- moves, scales and hides with it
+    local side = D:Side()
+    local holder = Holder(a, side)
+    if a ~= anchorFrame or holder ~= dock.holder or dock.side ~= side then
+        if InCombatLockdown and InCombatLockdown() and holder ~= a then holder = dock.holder or a end
+        anchorFrame, dock.holder, dock.side = a, holder, side
+        dock:SetParent(a)          -- moves, scales, fades and hides with it
         dock:SetFrameStrata(a.GetFrameStrata and a:GetFrameStrata() or "MEDIUM")
         dock:ClearAllPoints()
-        if dock.side == "above" then
-            dock:SetPoint("BOTTOMLEFT", a, "TOPLEFT", 0, 2)
-            dock:SetPoint("BOTTOMRIGHT", a, "TOPRIGHT", 0, 2)
+        if holder == a then
+            if side == "above" then
+                dock:SetPoint("BOTTOMLEFT", a, "TOPLEFT", 0, 2)
+                dock:SetPoint("BOTTOMRIGHT", a, "TOPRIGHT", 0, 2)
+            else
+                dock:SetPoint("TOPLEFT", a, "BOTTOMLEFT", 0, -2)
+                dock:SetPoint("TOPRIGHT", a, "BOTTOMRIGHT", 0, -2)
+            end
         else
-            dock:SetPoint("TOPLEFT", a, "BOTTOMLEFT", 0, -2)
-            dock:SetPoint("TOPRIGHT", a, "BOTTOMRIGHT", 0, -2)
+            -- under (over) a box: its edge for the height, the window's left
+            -- edge and width for the rest (EUI lines the boxes up with it)
+            local dx = 0
+            local hl, al = holder.GetLeft and holder:GetLeft(), a.GetLeft and a:GetLeft()
+            if type(hl) == "number" and type(al) == "number" then
+                local hs, as = holder:GetEffectiveScale() or 1, a:GetEffectiveScale() or 1
+                dx = (al * as - hl * hs) / hs
+            end
+            if side == "above" then dock:SetPoint("BOTTOMLEFT", holder, "TOPLEFT", dx, 8)
+            else dock:SetPoint("TOPLEFT", holder, "BOTTOMLEFT", dx, -8) end
         end
+    end
+    if holder ~= a then
+        local w = a.GetWidth and a:GetWidth()
+        if type(w) == "number" and w > 0 then dock:SetWidth(w) end
     end
     return a
 end
@@ -360,21 +473,36 @@ function D:Refresh()
         return
     end
 
+    local st = D:Style()
+    D.style = st
+    dock.bg:SetColorTexture(st.bg[1], st.bg[2], st.bg[3], st.bg[4] or 1)
+    if dock.SetEdgeColor then dock:SetEdgeColor(st.edge) end
+    header.logo:SetShown(not st.eui)
+    header.label:ClearAllPoints()
+    if st.eui then header.label:SetPoint("LEFT", 0, 0) else header.label:SetPoint("LEFT", header.logo, "RIGHT", 5, 0) end
+    SetFont(header.label, st, st.eui and (st.size - 1) or 10)
+    SetFont(header.title, st, st.eui and (st.size - 1) or 10)
+    header.label:SetTextColor(st.label[1], st.label[2], st.label[3])
+    local lineH = st.size + 4
+
     local guide = snap.target or L["none yet"]
     local step = snap.leaderStep and ("  ·  " .. snap.leaderStep .. "/" .. (snap.leaderTotal or "?")) or ""
-    header.title:SetText(T.Upper(T.NAME) .. "  " .. Hexed(C.faint, guide .. step))
+    header.label:SetText(T.Upper(T.NAME))
+    header.title:SetText(Hexed(C.faint, guide .. step))
 
     local list = D:Lines(snap)
     local y = -24
     for i, l in ipairs(list) do
         local r = Line(i)
+        SetFont(r.text, st)
+        r:SetHeight(lineH)
         r:ClearAllPoints()
         r:SetPoint("TOPLEFT", 10, y)
         r:SetPoint("TOPRIGHT", -8, y)
         r.text:SetText(l.text)
         r.onClick, r.tip = l.onClick, l.tip
         r:Show()
-        y = y - LINE_H
+        y = y - lineH
     end
     for i = #list + 1, #lines do lines[i]:Hide() end
 
@@ -388,6 +516,8 @@ function D:Refresh()
             local bw = (w - 16 - 4 * (n - 1)) / n
             for i, key in ipairs(row) do
                 local b = btns[key]
+                b:SetAccent(st.eui and st.accent or nil)
+                if b.GetFontString and b:GetFontString() then SetFont(b:GetFontString(), st, st.eui and (st.size - 1) or 12) end
                 b:ClearAllPoints()
                 b:SetPoint("TOPLEFT", 8 + (i - 1) * (bw + 4), y - 3)
                 b:SetWidth(bw)

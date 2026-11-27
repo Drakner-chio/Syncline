@@ -92,8 +92,11 @@ local function FlatButton(parent, text, width, height)
     function b:Restyle()
         local hi = self.hover
         if self.primary then
-            self.bg:SetColorTexture(unpack(hi and C.accentHi or C.accent))
-            self:SetEdgeColor(hi and C.accentHi or C.accent)
+            local own = type(self.accentColor) == "table" and self.accentColor or nil
+            local ac = own or (hi and C.accentHi or C.accent)
+            if own and hi then ac = { math.min(1, ac[1] + 0.12), math.min(1, ac[2] + 0.12), math.min(1, ac[3] + 0.12), 1 } end
+            self.bg:SetColorTexture(ac[1], ac[2], ac[3], 1)
+            self:SetEdgeColor(ac)
             fs:SetTextColor(C.dark[1], C.dark[2], C.dark[3])
         else
             self.bg:SetColorTexture(unpack(hi and C.btnHi or C.btn))
@@ -102,6 +105,8 @@ local function FlatButton(parent, text, width, height)
         end
     end
     function b:SetPrimary(on) self.primary = on and true or false; self:Restyle() end
+    -- another accent for the primary look (nil: our light blue)
+    function b:SetAccent(c) self.accentColor = c; self:Restyle() end
     function b:SetHover(on) self.hover = on; self:Restyle() end
     b:SetScript("OnEnter", function(self) self:SetHover(true) end)
     b:SetScript("OnLeave", function(self) self:SetHover(false) end)

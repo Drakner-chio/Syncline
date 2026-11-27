@@ -397,6 +397,7 @@ if GetLocale() == "deDE" then
         ["Below"] = "Unten",
         ["Above"] = "Oben",
         ["Lines"] = "Zeilen",
+        ["Look"] = "Aussehen",
         ["Which lines the strip shows, and where it sits."] = "Welche Zeilen die Leiste zeigt und wo sie sitzt.",
         ["Missing and not accepted quests"] = "Fehlende und nicht angenommene Quests",
         ["Buttons"] = "Knöpfe",

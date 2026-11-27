@@ -20,7 +20,7 @@ The CurseForge description lives in [`docs/curseforge.md`](docs/curseforge.md).
 
 **Steps**
 - The group window shows every player's step and how far ahead or behind the leader they are, plus the leader's step with its text. A progress bar marks where everyone is in the guide.
-- A Syncline strip docked to the RestedXP guide window (classic or V2): the group, quest progress, quests not accepted, hearthstone and flight paths, quests to share and small buttons, right under the guide. Lines and position set in its cog menu.
+- A Syncline strip docked to the RestedXP guide window (classic or V2): the group, quest progress, quests not accepted, hearthstone and flight paths, quests to share and small buttons, right under the guide. Lines and position set in its cog menu. With [EUI-RestedXP](https://www.curseforge.com/wow/addons/eui-restedxp) it docks to that reskin's window (under the target and item boxes) and takes EllesmereUI's font, card and accent.
 - Views for the group window, set separately for leading and for being a member: **Full**, **Quests** (overview plus quest helpers), **Compact** (overview, quest progress, hearthstone, missing quests) or **Custom**. The compact overview shows a dot per player and only what needs attention: the leader sees everyone's problems, a member only their own. A click on a card's title folds it; buttons show only what fits right now.
 - The leader skips a step for the whole group, or pulls everyone to his step. Members ask the leader for a skip.
 - Skip check: before a skip, Syncline shows whether follow-up quests hang on the step (green: safe, orange/red: these quests would be gone) and asks the leader once more.

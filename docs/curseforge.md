@@ -42,7 +42,7 @@
 
 - Switch right away or get asked first, let the leader move your step or not, every part can be switched off (`/sl options`)
 - Nothing switches in combat – it waits until combat ends
-- **Docked to RestedXP:** a strip right under the RestedXP guide window – group, quest progress, quests not accepted, hearthstone, share, buttons – that moves and hides with it. Pick the lines you want
+- **Docked to RestedXP:** a strip right under the RestedXP guide window – group, quest progress, quests not accepted, hearthstone, share, buttons – that moves and hides with it. Pick the lines you want. Works with EUI-RestedXP's layouts and takes EllesmereUI's look
 - **Views for the group window:** *Full*, *Quests*, *Compact* or your own mix – one for leading, one for being a member. A progress bar marks where everyone is; cards fold with a click on their title
 - Minimap button, an entry in the minimap's addon menu and key bindings for *skip / request skip* and the group window
 - English and German

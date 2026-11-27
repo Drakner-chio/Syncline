@@ -1,5 +1,9 @@
 # Syncline
 
+## 0.16.0
+- Leiste am RestedXP-Fenster arbeitet mit EUI-RestedXP zusammen: Ist dessen Umbau aktiv (Frameless, Timeline, Compact, Zygor, 8-Bit, Rail), dockt sie an das EUI-Fenster statt an das unsichtbare RestedXP-Fenster darunter. Sie erbt Skalierung und Ausblenden bei Inaktivität und sitzt unter den Ziel- und Item-Boxen, die EUI unter sein Fenster klebt. Wächst EUI nach oben, sitzt sie oben.
+- EllesmereUI-Look, sobald EllesmereUI läuft: dessen Schrift mit Kontur, die dunkle Schrittkarte mit hauchdünnem Rand (Deckkraft aus deinen EUI-Einstellungen), „SYNCLINE“ in der Farbe von „STEP 1“, Knöpfe in der EUI-Akzentfarbe. Im Zahnrad-Menü unter „Aussehen“ auf „Syncline“ umstellbar.
+
 ## 0.15.0
 - Syncline-Leiste am RestedXP-Fenster: hängt direkt unter (oder über) dem Guidefenster, genauso breit, wandert, skaliert und verschwindet mit ihm. Funktioniert mit dem klassischen RestedXP-Fenster und der neuen V2-Oberfläche.
 - Zeilen: Gruppe auf einen Blick (mit den wichtigsten Problemen), Gruppenschritt, Questfortschritt, nicht angenommene und fehlende Quests, Ruhestein und Flugpunkte, Quests teilen (Klick teilt), Erfahrung, Bummel-Meter, dazu kleine Knöpfe (Skip / Zu mir bzw. Skip anfragen / Guide holen). Jede Zeile erscheint nur, wenn sie etwas zu sagen hat.

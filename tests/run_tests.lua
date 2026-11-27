@@ -889,6 +889,33 @@ ns.db.dock = false; Dk:Refresh()
 check(not SynclineDock:IsShown(), "strip switched off")
 ns.db.dock = true; Dk:Refresh()
 check(SynclineDock:IsShown(), "and on again")
+-- EUI-RestedXP: its own window on screen, RestedXP's invisible underneath
+local W = CreateFrame("Frame", "EUIRestedXPTimeline"); W:Show()
+function W:GetBottom() return 200 end
+function W:GetLeft() return 50 end
+EUIRestedxPCache = { rxpEnabled = true, rxpLayout = "FRAMELESS", rxpFlCardA = 65 }
+EllesmereUI = { ELLESMERE_GREEN = { r = 0.1, g = 0.2, b = 0.3 }, GetFontPath = function() return "Fonts\\EUI.ttf" end }
+check(Dk:Anchor() == RXPFrame, "EUI window not used while RestedXP's own still shows")
+function RXPFrame:GetAlpha() return 0 end
+check(Dk:Anchor() == W and Dk:Side() == "below", "docked to EUI's window, below")
+local tgt = CreateFrame("Frame", "RXPTargetFrame"); tgt:Show()
+function tgt:GetBottom() return 120 end
+function tgt:GetLeft() return 50 end
+Dk:Refresh()
+check(Dk.frame.holder == tgt, "under RestedXP's target box that EUI glued under its window")
+check(Dk.style.eui and Dk.style.font == "Fonts\\EUI.ttf" and math.abs(Dk.style.bg[4] - 0.65) < 0.001, "EllesmereUI look: font, card")
+check(Dk.buttons.skip.accentColor and Dk.buttons.skip.accentColor[3] == 0.3, "buttons in the EUI accent")
+EUIRestedxPCache.rxpFlip = true
+check(Dk:Side() == "above", "EUI grows upwards: strip on top")
+EUIRestedxPCache.rxpFlip = nil
+ns.db.dockStyle = "syncline"; Dk:Refresh()
+check(not Dk.style.eui and type(Dk.buttons.skip.accentColor) ~= "table", "own look on request")
+ns.db.dockStyle = "auto"
+EUIRestedxPCache.rxpLayout = "DEFAULT"
+check(Dk:Anchor() == RXPFrame, "EUI on RestedXP's own window: dock to that")
+EUIRestedXPTimeline = nil; RXPTargetFrame = nil; EllesmereUI = nil; EUIRestedxPCache = nil
+RXPFrame.GetAlpha = nil
+Dk:Refresh()
 ns.HandleClick("LeftButton")
 check(not SynclineGroupFrame:IsShown(), "left click closes it again")
 ns.HandleClick("RightButton")
