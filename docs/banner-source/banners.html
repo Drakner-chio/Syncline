@@ -98,6 +98,53 @@ h2 em { font-style: normal; color: var(--acc); }
 .mmbtn img { width: 22px; height: 22px; }
 .tt { position: absolute; width: 240px; background: rgba(8,10,14,.95); border: 1px solid #3a3f48; padding: 10px 12px; font-size: 13px; line-height: 1.6; color: var(--ink); box-shadow: 0 14px 34px rgba(0,0,0,.55); }
 .tt .r { display: flex; justify-content: space-between; } .tt .r span:first-child { color: var(--muted); }
+
+/* new window parts (0.14+) */
+.win .head .view { margin-left:auto; font-size:11.5px; color:var(--ink); background:#1f2126; border:1px solid #3d4048; padding:2px 9px; }
+.win .head .view + .x { margin-left:8px; }
+.sec .role { position:absolute; right:12px; top:10px; font-family:Grotesk; font-size:10px; letter-spacing:1.3px; color:var(--faint); }
+.pline { display:flex; align-items:center; gap:10px; padding:10px 14px 2px; }
+.pbar { position:relative; flex:1; height:6px; background:#23262c; }
+.pbar .fill { position:absolute; left:0; top:0; bottom:0; background:#1d5a73; }
+.pbar .mk { position:absolute; top:-2px; width:2px; height:10px; }
+.pbar .mk.ld { width:3px; height:14px; top:-4px; background:#fff; }
+.pct { font-size:11px; color:var(--muted); width:30px; text-align:right; }
+.mhead { display:grid; grid-template-columns: 18px 128px 92px 1fr; padding:0 12px 4px 14px; font-family:Grotesk; font-size:9.5px; letter-spacing:1.2px; color:var(--faint); text-transform:uppercase; }
+.mrow.me { background: rgba(29,90,115,.28) !important; }
+.mrow .cls { border-left:2px solid; padding-left:6px; margin-left:-8px; }
+.crown { vertical-align:-1px; margin-left:5px; }
+.qrow { display:grid; grid-template-columns: 150px 1fr; align-items:center; min-height:24px; padding:0 14px; font-size:12.5px; white-space:nowrap; }
+.qrow > span:first-child { overflow:hidden; text-overflow:ellipsis; }
+.chips { padding:2px 14px 6px; font-size:13px; line-height:1.6; }
+.chips .d { margin-right:3px; }
+.iss { padding:2px 14px; font-size:12.5px; }
+.sign { color:var(--faint); margin-left:6px; font-family:Inter; letter-spacing:0; }
+
+/* RestedXP guide window mock (banner 4): stock or skinned */
+.gw { position:absolute; width:290px; font-family:Inter; }
+.gw .zone { display:flex; align-items:baseline; gap:8px; padding:0 2px 8px; border-bottom:1px solid rgba(255,255,255,.55);
+            font-family:Grotesk; font-weight:700; font-size:21px; color:#fff; text-shadow:0 1px 2px #000; }
+.gw .zone span { margin-left:auto; font-family:Inter; font-weight:600; font-size:13px; color:#fff; }
+.gw .zone span i { font-style:normal; color:#4fc3f7; }
+.gw .gcard { margin-top:10px; background:rgba(0,0,0,.65); border:1px solid rgba(255,255,255,.07); padding:10px 14px 12px; }
+.gw .gcard .lab { font-family:Grotesk; font-weight:700; font-size:11px; letter-spacing:.8px; color:#e8a33d; margin-bottom:6px; }
+.gw .gcard .ins { font-weight:700; font-size:14px; line-height:1.35; color:#fff; }
+.gw .gcard .ins .y { color:#ffd100; } .gw .gcard .ins .gr { color:#3cff4b; }
+.gw .list { margin-top:10px; font-size:12.5px; line-height:1.7; color:#c9c9c9; }
+.gw .list div { display:flex; gap:12px; } .gw .list b { color:#888; font-weight:500; width:14px; }
+.strip { position:absolute; background:rgba(0,0,0,.65); border:1px solid rgba(255,255,255,.07); padding:7px 10px 8px; font-size:12px; color:#eee; line-height:1.55; }
+.strip .sh { display:flex; align-items:center; gap:8px; font-family:Grotesk; font-weight:700; font-size:11px; letter-spacing:.8px; color:#e8a33d; margin-bottom:3px; }
+.strip .sh i { font-style:normal; font-family:Inter; font-weight:400; letter-spacing:0; color:#7a808a; font-size:11px; }
+.strip .sh .cog { margin-left:auto; color:#8a909b; font-size:12px; letter-spacing:0; }
+.strip .bt { display:flex; gap:4px; margin-top:6px; }
+.strip .bt span { flex:1; text-align:center; font-size:11px; padding:2px 0; border:1px solid #3d4048; background:#1f2126; color:#eee; }
+.strip .bt span.p { color:#06141b; font-weight:600; }
+.sk { position:absolute; font-family:Grotesk; font-size:10px; letter-spacing:1.3px; text-transform:uppercase; color:var(--muted); }
+.dock-arrow { position:absolute; font-size:11px; color:var(--acc); font-family:Grotesk; letter-spacing:1px; }
+
+/* small floating panel (banner 5) */
+.panel { position:absolute; background:#0b0d10; border:1px solid #3a3f48; box-shadow:0 18px 40px rgba(0,0,0,.6); padding:10px 0 8px; }
+.panel .t { font-family:Grotesk; font-size:10.5px; letter-spacing:1.3px; color:var(--muted); padding:0 14px 6px; text-transform:uppercase; }
 </style>
 </head>
 <body>
@@ -109,22 +156,29 @@ h2 em { font-style: normal; color: var(--acc); }
   <div class="left">
     <div class="pill">RestedXP in a group</div>
     <h2>One guide. <em>Everyone in it.</em></h2>
-    <p class="lead">The group leader picks a RestedXP guide – and everyone in the group has it loaded a second later. See who is at which step, at a glance.</p>
+    <p class="lead">The group leader picks a RestedXP guide – and everyone in the group has it loaded a second later. See who is where, who is stuck and why, at a glance.</p>
     <p class="foot">Made for World of Warcraft: Forever · works with RestedXP Guides</p>
   </div>
   <div class="right">
-    <div class="win" style="width:440px">
-      <div class="head"><img src="../../media/icon-400.png"><b>Syncline</b><i>Group</i><span class="x">×</span></div>
+    <div class="win" style="width:460px">
+      <div class="head"><img src="../../media/icon-400.png"><b>Syncline</b><i>Group</i><span class="view">View: Full</span><span class="x">×</span></div>
       <div class="body">
-        <div class="sec"><div class="t">Group guide</div>
-          <div class="guide">12-17 The Barrens</div>
+        <div class="sec"><div class="t">Group guide</div><span class="role">YOU LEAD</span>
+          <div class="guide" style="font-size:17px">12-17 The Barrens</div>
+          <div class="pline"><div class="pbar"><div class="fill" style="width:28%"></div>
+            <span class="mk" style="left:26.5%;background:var(--hunter)"></span>
+            <span class="mk ld" style="left:28.3%"></span>
+            <span class="mk" style="left:28.6%;background:var(--shaman)"></span>
+            <span class="mk" style="left:29.2%;background:var(--priest)"></span>
+            <span class="mk" style="left:28%;background:var(--mage)"></span></div><span class="pct">28 %</span></div>
           <div class="stepl">Leader's step: <b>34/120</b>  ·  Turn in Crossroads Supplies</div></div>
-        <div class="sec"><div class="t">Who is in which guide</div>
-          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span><span class="c-war">Alex</span><span class="lead-tag">leader</span></span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
-          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="c-sha">Thrall</span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
-          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="c-hun">Rexxar</span><span>32/120 <span class="w">-2</span></span><span class="g">same guide</span></div>
-          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="c-pri">Zul'jin</span><span>35/120 <span class="a">+1</span></span><span class="g">same guide</span></div>
-          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="c-mag">Vol'jin</span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
+        <div class="sec"><div class="t">Who is in which guide <span class="sign">–</span></div>
+          <div class="mhead"><span></span><span>Name</span><span>Step</span><span>Status</span></div>
+          <div class="mrow me"><span class="dot" style="background:var(--good)"></span><span><span class="cls c-war" style="border-color:var(--warrior)">Alex</span><svg class="crown" width="11" height="9" viewBox="0 0 12 10"><path d="M0 9h12L11 2 8 5 6 0 4 5 1 2z" fill="#ffd100"/></svg></span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
+          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="cls c-sha" style="border-color:var(--shaman)">Thrall</span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
+          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="cls c-hun" style="border-color:var(--hunter)">Rexxar</span><span>32/120 <span class="w">-2</span></span><span class="w">stuck: turn in Lost Cargo first</span></div>
+          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="cls c-pri" style="border-color:var(--priest)">Zul'jin</span><span>35/120 <span class="a">+1</span></span><span class="g">same guide</span></div>
+          <div class="mrow"><span class="dot" style="background:var(--good)"></span><span class="cls c-mag" style="border-color:var(--mage)">Vol'jin</span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
         </div>
       </div>
       <div class="bar"><span class="btn p">Skip step</span><span class="btn">Pull to my step</span><span class="btn">Send guide</span></div>
@@ -161,8 +215,138 @@ h2 em { font-style: normal; color: var(--acc); }
   </div>
 </div></section>
 
-<!-- 3: skip for everyone -->
-<section class="banner" id="b3"><div class="card" style="grid-template-columns: 410px 1fr;">
+<!-- 3: quests -->
+<section class="banner" id="b3"><div class="card" style="grid-template-columns: 400px 1fr;">
+  <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
+  <div class="left">
+    <div class="pill">Quests</div>
+    <h2 style="font-size:46px">Everyone's quests. <em>One look.</em></h2>
+    <p class="lead">Who still needs how many kills, who forgot to accept a quest, whose hearthstone is on cooldown before the guide hearths – and a word once <b>everyone is done</b>.</p>
+    <p class="foot">Group steps · flight paths · missing quests · share with one click</p>
+  </div>
+  <div class="right">
+    <div class="win" style="position:absolute; left:0; top:22px; width:470px">
+      <div class="head"><img src="../../media/icon-400.png"><b>Syncline</b><i>Group</i><span class="view">View: Quests</span><span class="x">×</span></div>
+      <div class="body">
+        <div class="sec"><div class="t">Quest progress <span class="sign">–</span></div>
+          <div class="qrow"><span class="a">Group step</span><span class="g">everyone has the quest and is close</span></div>
+          <div class="qrow"><span style="color:var(--ink)">Kolkar Leaders</span><span><span class="c-war">Alex</span> <span class="g">1/1</span>  <span class="c-sha">Thrall</span> <span class="g">1/1</span>  <span class="c-hun">Rexxar</span> <span class="g">1/1</span></span></div>
+          <div class="qrow"><span style="color:var(--ink)">Kolkar Pack Runners</span><span><span class="c-war">Alex</span> <span class="g">8/8</span>  <span class="c-sha">Thrall</span> <span style="color:#fff">6/8</span>  <span class="c-hun">Rexxar</span> <span style="color:#fff">3/8</span></span></div></div>
+        <div class="sec"><div class="t">Hearthstone and flight paths <span class="sign">–</span></div>
+          <div class="qrow" style="grid-template-columns:110px 1fr"><span class="c-sha">Thrall</span><span>Hearth: <span class="w">12 min</span>  ·  <span class="b">set to Orgrimmar</span></span></div>
+          <div class="qrow" style="grid-template-columns:110px 1fr"><span class="c-mag">Vol'jin</span><span class="w">lacks flight path Camp Taurajo</span></div></div>
+        <div class="sec"><div class="t">Missing quests <span class="sign">–</span></div>
+          <div class="qrow" style="grid-template-columns:110px 1fr"><span class="c-hun">Rexxar</span><span class="b">not accepted: Lost in Battle</span></div>
+          <div class="qrow" style="grid-template-columns:110px 1fr"><span class="c-pri">Zul'jin</span><span class="m">2: Ishamuhale, Altered Beings</span></div></div>
+      </div>
+    </div>
+    <div class="chatbox" style="position:absolute; left:120px; top:420px; width:540px">
+      <div><img src="../../media/icon-400.png"><span class="sl">Syncline</span>: Everyone is done with <span class="y">Kolkar Pack Runners</span> – off to turn it in!</div>
+      <div><img src="../../media/icon-400.png"><span class="sl">Syncline</span>: <span style="color:#ff5050">You haven't accepted Lost in Battle (step 52)!</span></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- 4: docked to RestedXP -->
+<section class="banner" id="b4"><div class="card" style="grid-template-columns: 380px 1fr;">
+  <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
+  <div class="left">
+    <div class="pill">Docked to RestedXP</div>
+    <h2 style="font-size:44px">Right under <em>your guide.</em></h2>
+    <p class="lead">A strip hangs under the RestedXP window – stock or skinned – and moves, scales and hides with it. Pick its lines, or <b>give it a window of its own</b>.</p>
+    <p class="foot">Takes the look of your skin: EllesmereUI, ElvUI or RestedXP's theme · works with EUI-, FUI-, BeautifulRestedXP, LiteTweaks …</p>
+  </div>
+  <div class="right">
+    <div class="gw" style="left:0; top:14px">
+      <div class="zone">13. Uldaman <span>1/66 · <i>2%</i></span></div>
+      <div class="gcard"><div class="lab">STEP 1</div><div class="ins">Accept all quests available for <span class="y">Uldaman</span></div></div>
+            <div class="list"><div><b>2</b>Travel to Undercity</div><div><b>3</b>Talk to <span style="color:#3cff4b">Patrick</span></div></div>
+    </div>
+    <div class="strip" style="left:0px; top:255px; width:290px; background:rgba(0,0,0,.65); border-color:rgba(255,255,255,.07);">
+        <div class="sh" style="color:#e8a33d">SYNCLINE <i>13. Uldaman · 1/66</i><span class="cog">⚙</span></div>
+        <div><span class="g">•</span><span class="c-war">Alex</span> <span class="g">•</span><span class="c-sha">Thrall</span> <span class="g">•</span><span class="c-hun">Rexxar</span>  <span class="f">3/3</span></div>
+        <div>&nbsp; <span class="c-hun">Rexxar</span>: <span class="w">2 step(s) behind</span></div>
+        <div>Uldaman Reagents  <span class="c-war">Alex</span> <span class="g">8/8</span> <span class="c-sha">Thrall</span> <span style="color:#fff">5/8</span></div>
+        <div><span style="color:#0cd29f">Hearth</span>: <span class="c-sha">Thrall</span> <span class="w">10 min</span>  <span class="c-hun">Rexxar</span> <span class="g">ready</span></div>
+        <div class="bt"><span class="p" style="background:#0cd29f;border-color:#0cd29f">Skip</span><span>To me</span></div></div>
+    <div class="sk" style="left:350px; top:4px; color:var(--ink)">The look follows your skin</div>
+    <div class="sk" style="left:350px; top:28px; color:#0cd29f; font-size:9.5px">EllesmereUI</div>
+    <div class="strip" style="left:350px; top:42px; width:290px; background:rgba(0,0,0,.65); border-color:rgba(255,255,255,.07);">
+        <div class="sh" style="color:#e8a33d">SYNCLINE <i>13. Uldaman · 1/66</i><span class="cog">⚙</span></div>
+        <div><span class="g">•</span><span class="c-war">Alex</span> <span class="g">•</span><span class="c-sha">Thrall</span> <span class="g">•</span><span class="c-hun">Rexxar</span>  <span class="f">3/3</span></div>
+        <div>Uldaman Reagents  <span class="c-war">Alex</span> <span class="g">8/8</span> <span class="c-sha">Thrall</span> <span style="color:#fff">5/8</span></div>
+        <div class="bt"><span class="p" style="background:#0cd29f;border-color:#0cd29f">Skip</span><span>To me</span></div></div>
+    <div class="sk" style="left:350px; top:152px; color:#fe7b2c; font-size:9.5px">ElvUI</div>
+    <div class="strip" style="left:350px; top:168px; width:290px; background:rgba(26,26,26,.85); border-color:#000;">
+        <div class="sh" style="color:#fe7b2c">SYNCLINE <i>13. Uldaman · 1/66</i><span class="cog">⚙</span></div>
+        <div><span class="g">•</span><span class="c-war">Alex</span> <span class="g">•</span><span class="c-sha">Thrall</span> <span class="g">•</span><span class="c-hun">Rexxar</span>  <span class="f">3/3</span></div>
+        <div>Uldaman Reagents  <span class="c-war">Alex</span> <span class="g">8/8</span> <span class="c-sha">Thrall</span> <span style="color:#fff">5/8</span></div>
+        <div class="bt"><span class="p" style="background:#fe7b2c;border-color:#fe7b2c">Skip</span><span>To me</span></div></div>
+    <div class="sk" style="left:350px; top:278px; color:#e08cff; font-size:9.5px">RestedXP theme</div>
+    <div class="strip" style="left:350px; top:294px; width:290px; background:rgba(12,12,27,.92); border-color:rgba(206,123,255,.35);">
+        <div class="sh" style="color:#e08cff">SYNCLINE <i>13. Uldaman · 1/66</i><span class="cog">⚙</span></div>
+        <div><span class="g">•</span><span class="c-war">Alex</span> <span class="g">•</span><span class="c-sha">Thrall</span> <span class="g">•</span><span class="c-hun">Rexxar</span>  <span class="f">3/3</span></div>
+        <div>Uldaman Reagents  <span class="c-war">Alex</span> <span class="g">8/8</span> <span class="c-sha">Thrall</span> <span style="color:#fff">5/8</span></div>
+        <div class="bt"><span class="p" style="background:#e08cff;border-color:#e08cff">Skip</span><span>To me</span></div></div>
+    <div class="sk" style="left:350px; top:404px; color:#4fc3f7; font-size:9.5px">Syncline</div>
+    <div class="strip" style="left:350px; top:420px; width:290px; background:rgba(13,14,17,.96); border-color:#30343b;">
+        <div class="sh" style="color:#8a909b">SYNCLINE <i>13. Uldaman · 1/66</i><span class="cog">⚙</span></div>
+        <div><span class="g">•</span><span class="c-war">Alex</span> <span class="g">•</span><span class="c-sha">Thrall</span> <span class="g">•</span><span class="c-hun">Rexxar</span>  <span class="f">3/3</span></div>
+        <div>Uldaman Reagents  <span class="c-war">Alex</span> <span class="g">8/8</span> <span class="c-sha">Thrall</span> <span style="color:#fff">5/8</span></div>
+        <div class="bt"><span class="p" style="background:#4fc3f7;border-color:#4fc3f7">Skip</span><span>To me</span></div></div>
+    
+  </div>
+</div></section>
+
+<!-- 5: views -->
+<section class="banner" id="b5"><div class="card" style="grid-template-columns: 380px 1fr;">
+  <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
+  <div class="left">
+    <div class="pill">Views</div>
+    <h2 style="font-size:46px">Everything – <em>or just what matters.</em></h2>
+    <p class="lead">The leader keeps the full picture, members get a compact window: a dot per player and <b>only what needs attention</b>. Or mix your own, cards fold with a click.</p>
+    <p class="foot">Full · Quests · Compact · Custom – set separately for leading and for being a member</p>
+  </div>
+  <div class="right">
+    <div class="win" style="position:absolute; left:0; top:20px; width:330px; font-size:12px">
+      <div class="head"><img src="../../media/icon-400.png"><b>Syncline</b><i>Group</i><span class="view">View: Full</span></div>
+      <div class="body">
+        <div class="sec"><div class="t">Group guide</div><span class="role">YOU LEAD</span>
+          <div class="guide">12-17 The Barrens</div>
+          <div class="pline"><div class="pbar"><div class="fill" style="width:28%"></div><span class="mk" style="left:26.5%;background:var(--hunter)"></span><span class="mk ld" style="left:28.3%"></span><span class="mk" style="left:29%;background:var(--shaman)"></span></div><span class="pct">28 %</span></div></div>
+        <div class="sec"><div class="t">Who is in which guide</div>
+          <div class="mrow me" style="grid-template-columns:16px 90px 70px 1fr; font-size:12px"><span class="dot" style="background:var(--good)"></span><span class="c-war">Alex<svg class="crown" width="11" height="9" viewBox="0 0 12 10"><path d="M0 9h12L11 2 8 5 6 0 4 5 1 2z" fill="#ffd100"/></svg></span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
+          <div class="mrow" style="grid-template-columns:16px 90px 70px 1fr; font-size:12px"><span class="dot" style="background:var(--good)"></span><span class="c-sha">Thrall</span><span>34/120 <span class="g">=</span></span><span class="g">same guide</span></div>
+          <div class="mrow" style="grid-template-columns:16px 90px 70px 1fr; font-size:12px"><span class="dot" style="background:var(--good)"></span><span class="c-hun">Rexxar</span><span>32/120 <span class="w">-2</span></span><span class="g">same guide</span></div></div>
+      </div>
+      <div class="bar"><span class="btn p">Skip step</span><span class="btn">Pull</span><span class="btn">Send</span></div>
+    </div>
+    <div class="win" style="position:absolute; left:350px; top:20px; width:300px; font-size:12px">
+      <div class="head"><img src="../../media/icon-400.png"><b>Syncline</b><i>Group</i><span class="view">View: Compact</span></div>
+      <div class="body">
+        <div class="sec"><div class="t">Group guide</div><span class="role">MEMBER</span>
+          <div class="guide">12-17 The Barrens</div>
+          <div class="pline"><div class="pbar"><div class="fill" style="width:28%"></div><span class="mk" style="left:26.5%;background:var(--hunter)"></span><span class="mk ld" style="left:28.3%"></span><span class="mk" style="left:29%;background:var(--shaman)"></span></div><span class="pct">28 %</span></div></div>
+        <div class="sec"><div class="t">Group at a glance</div>
+          <div class="chips"><span class="g d">•</span><span class="c-war">Alex</span><svg class="crown" width="11" height="9" viewBox="0 0 12 10"><path d="M0 9h12L11 2 8 5 6 0 4 5 1 2z" fill="#ffd100"/></svg> &nbsp; <span class="g d">•</span><span class="c-sha">Thrall</span> &nbsp; <span class="g d">•</span><span class="c-hun">Rexxar</span> &nbsp; <span class="f">3/3</span></div>
+          <div class="iss w">you're 2 step(s) behind the leader</div></div>
+        <div class="sec"><div class="t">Quest progress</div>
+          <div class="qrow" style="grid-template-columns:110px 1fr; font-size:12px"><span style="color:var(--ink)">Pack Runners</span><span><span class="c-war">Alex</span> <span class="g">8/8</span> <span class="c-hun">Rexxar</span> <span style="color:#fff">3/8</span></span></div></div>
+      </div>
+      <div class="bar"><span class="btn">Request skip</span></div>
+    </div>
+    <div class="panel" style="left:0px; top:350px; width:330px">
+      <div class="t">View as member</div>
+      <div class="choice" style="margin:2px 14px 8px"><span>Full</span><span>Quests</span><span class="on">Compact</span><span>Custom</span></div>
+      <div class="sw" style="padding:3px 14px"><span class="tog"></span>Group at a glance</div>
+      <div class="sw" style="padding:3px 14px"><span class="tog off"></span>Member list</div>
+      <div class="sw" style="padding:3px 14px"><span class="tog"></span>Quest progress</div>
+    </div>
+  </div>
+</div></section>
+
+<!-- 6: skip for everyone -->
+<section class="banner" id="b6"><div class="card" style="grid-template-columns: 410px 1fr;">
   <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
   <div class="left">
     <div class="pill">Steps</div>
@@ -186,8 +370,8 @@ h2 em { font-style: normal; color: var(--acc); }
   </div>
 </div></section>
 
-<!-- 4: suggest a guide -->
-<section class="banner" id="b4"><div class="card" style="grid-template-columns: 410px 1fr;">
+<!-- 7: suggest a guide -->
+<section class="banner" id="b7"><div class="card" style="grid-template-columns: 410px 1fr;">
   <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
   <div class="left">
     <div class="pill">Suggestions</div>
@@ -215,33 +399,36 @@ h2 em { font-style: normal; color: var(--acc); }
   </div>
 </div></section>
 
-<!-- 5: your way -->
-<section class="banner" id="b5"><div class="card" style="grid-template-columns: 400px 1fr;">
+<!-- 8: your way -->
+<section class="banner" id="b8"><div class="card" style="grid-template-columns: 400px 1fr;">
   <div class="brand"><img src="../../media/icon-400.png"><span>Syncline</span></div>
   <div class="left">
     <div class="pill">Your way</div>
     <h2 style="font-size:46px">Follow along – <em>or ask first.</em></h2>
-    <p class="lead">Switch right away or get a popup first, let the leader move your step or not. Minimap button, settings window, key bindings – <b>/sl</b> for everything else.</p>
+    <p class="lead">Switch right away or get a popup first, let the leader move your step or not, every helper on its own switch. Minimap button, key bindings – <b>/sl</b> for everything else.</p>
     <p class="foot">English and German · settings also under Options → AddOns → Syncline</p>
   </div>
   <div class="right">
-    <div class="win" style="position:absolute; left:10px; top:60px; width:380px">
+    <div class="win" style="position:absolute; left:0; top:40px; width:390px">
       <div class="head"><img src="../../media/icon-400.png"><b>Syncline</b><i>Settings</i><span class="x">×</span></div>
       <div class="body">
         <div class="sec"><div class="t">Sync</div>
           <div class="sw"><span class="tog"></span>Follow the group leader's guide</div>
-          <div class="sw" style="color:var(--muted); font-size:12px; padding-bottom:0">When the leader picks a guide</div>
           <div class="choice"><span class="on">Switch right away</span><span>Ask me first</span></div>
-          <div class="sw"><span class="tog"></span>Offer to suggest a guide I pick myself</div>
-          <div class="sw"><span class="tog"></span>Let the leader skip steps and pull me to his step</div></div>
-        <div class="sec"><div class="t">General</div>
-          <div class="sw"><span class="tog"></span>Minimap button</div>
-          <div class="sw" style="color:var(--faint); font-size:11.5px">RestedXP Guides: <span class="g">&nbsp;found</span></div></div>
+          <div class="sw"><span class="tog"></span>Take the leader's RestedXP route settings</div></div>
+        <div class="sec"><div class="t">Group window</div>
+          <div class="sw" style="color:var(--muted); font-size:12px; padding-bottom:0">View as leader</div>
+          <div class="choice"><span class="on">Full</span><span>Quests</span><span>Compact</span><span>Custom</span></div>
+          <div class="sw" style="color:var(--muted); font-size:12px; padding-bottom:0">View as member</div>
+          <div class="choice"><span>Full</span><span>Quests</span><span class="on">Compact</span><span>Custom</span></div></div>
+        <div class="sec"><div class="t">At the RestedXP window</div>
+          <div class="sw"><span class="tog"></span>Show a Syncline strip at the RestedXP window</div>
+          <div class="choice"><span class="on">Docked</span><span>Own window</span></div></div>
       </div>
     </div>
-    <div class="mm" style="left:470px; top:300px"></div>
-    <div class="mmbtn" style="left:455px; top:330px"><img src="../../media/icon-400.png"></div>
-    <div class="tt" style="left:400px; top:120px">
+    <div class="mm" style="left:480px; top:320px"></div>
+    <div class="mmbtn" style="left:465px; top:350px"><img src="../../media/icon-400.png"></div>
+    <div class="tt" style="left:420px; top:90px">
       <div class="a" style="font-family:Grotesk; font-weight:700">Syncline</div>
       <div class="r"><span>Group guide</span><span class="a">12-17 The Barrens</span></div>
       <div class="r"><span>In it</span><span>5 / 5</span></div>

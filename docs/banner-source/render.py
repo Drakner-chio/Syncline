@@ -9,7 +9,7 @@ with sync_playwright() as p:
     page = browser.new_page(device_scale_factor=2)
     page.goto("file://" + os.path.join(here, "banners.html"))
     page.wait_for_timeout(500)
-    for i in range(1, 6):
+    for i in range(1, 9):
         png = os.path.join(out, "syncline-%d.png" % i)
         page.locator("#b%d" % i).screenshot(path=png)
     browser.close()
