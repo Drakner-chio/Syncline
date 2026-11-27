@@ -43,6 +43,9 @@ Von Hand: `python3 tools/build_guidemap.py <Pfad zu RXPGuides> > GuideMap.lua`
 | `/sl herholen` | Leiter: alle im Guide zu meinem Schritt holen |
 | `/sl route` | Leiter: RestedXP-Routeneinstellungen (Dungeons, ...) nochmal senden |
 | `/sl fehlend` | Quests, die der Guide noch braucht, die aber nicht im Log sind |
+| `/sl warum` | warum der aktuelle Schritt noch nicht geht |
+| `/sl teilen` | Quests teilen, die den anderen fehlen |
+| `/sl autoteilen` | automatisch teilen (an/aus) |
 | `/sl auto` / `fragen` | sofort wechseln / vorher Popup |
 | `/sl an` / `aus` | Sync an/aus |
 | `/sl version` | eigene Version |

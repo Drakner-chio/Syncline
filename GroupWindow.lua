@@ -11,8 +11,8 @@ local W = {}
 ns.GroupWindow = W
 
 local W_WIDTH, PAD, ROW_H, MAX_ROWS = 400, 12, 22, 10
-local GUIDE_H = 102
-local frame, guideCard, guideText, stepText, riskText, membersCard, moreText, emptyText
+local GUIDE_H = 120
+local frame, guideCard, guideText, stepText, riskText, blockText, membersCard, moreText, emptyText
 local rows = {}
 local buttons = {}
 
@@ -42,14 +42,22 @@ local function Row(i)
     r.step:SetWordWrap(false)
     r.state = T.Text(r, "", 12, C.muted, true)
     r.state:SetPoint("LEFT", 250, 0)
-    -- hover: which route settings differ
+    -- hover: why the step hangs, which route settings differ
     r:EnableMouse(true)
     r:SetScript("OnEnter", function(self)
-        if not self.diff or #self.diff == 0 then return end
+        local hasDiff = self.diff and #self.diff > 0
+        if not hasDiff and not self.block then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(L["RestedXP route settings"])
-        GameTooltip:AddLine(L["Different from the leader:"], C.muted[1], C.muted[2], C.muted[3])
-        for _, d in ipairs(self.diff) do GameTooltip:AddLine("  " .. d, C.warn[1], C.warn[2], C.warn[3]) end
+        if self.block then
+            GameTooltip:AddLine(L["Why the step can't be done yet"])
+            GameTooltip:AddLine(self.block, C.warn[1], C.warn[2], C.warn[3], true)
+        end
+        if hasDiff then
+            if self.block then GameTooltip:AddLine(" ") end
+            GameTooltip:AddLine(L["RestedXP route settings"])
+            GameTooltip:AddLine(L["Different from the leader:"], C.muted[1], C.muted[2], C.muted[3])
+            for _, d in ipairs(self.diff) do GameTooltip:AddLine("  " .. d, C.warn[1], C.warn[2], C.warn[3]) end
+        end
         GameTooltip:Show()
     end)
     r:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -107,6 +115,10 @@ local function Build()
     riskText:SetPoint("TOPLEFT", 20, -74)
     riskText:SetPoint("RIGHT", -12, 0)
     riskText:SetWordWrap(false)
+    blockText = T.Text(guideCard, "", 12, C.warn, true)
+    blockText:SetPoint("TOPLEFT", 20, -92)
+    blockText:SetPoint("RIGHT", -12, 0)
+    blockText:SetWordWrap(false)
 
     membersCard = T.Card(frame, "Who is in which guide", PAD, -40 - GUIDE_H - 8, cw, 100)
     emptyText = T.Text(membersCard, "", 12, C.muted, true)
@@ -141,6 +153,7 @@ local function Build()
         function() ns.Actions.RequestSkip() end, false)
 
     if ns.Missing then ns.Missing:Attach(frame, PAD, cw) end
+    if ns.Share then ns.Share:Attach(frame, PAD, cw) end
     if ns.XP then ns.XP:Attach(frame, PAD, cw) end
     if ns.Slack then ns.Slack:Attach(frame, PAD, cw) end
 
@@ -177,6 +190,10 @@ function W:Refresh()
             .. (ns.StepText(snap.myStep) and ("  ·  " .. ns.StepText(snap.myStep)) or "")) or "")
     end
 
+    -- why my own step hangs
+    local myBlock = ns.Blockers and ns.db.showBlockers and ns.Blockers:Mine()[1]
+    blockText:SetText(myBlock and (L["You"] .. ": " .. ns.Blockers:Text(myBlock)) or "")
+
     local shown = math.min(#snap.members, MAX_ROWS)
     for i = 1, shown do
         local m, r = snap.members[i], Row(i)
@@ -186,8 +203,12 @@ function W:Refresh()
         local lead = m.lead and ("  |cff" .. T.Hex(C.faint) .. L.STATUS_LEADER .. "|r") or ""
         r.name:SetText("|cff" .. T.ClassHex(m.class) .. name .. "|r" .. lead)
         r.diff = m.routeDiff
-        -- another guide matters more than other settings
-        if m.state == "same" and m.routeDiff and #m.routeDiff > 0 then
+        r.block = m.blocker and (m.me and ns.Blockers:Text(m.blocker) or ns.Blockers:TextFor(m.blocker)) or false
+        r.diff = m.routeDiff or false
+        -- another guide matters more than a stuck step, that more than other settings
+        if m.state == "same" and r.block then
+            r.state:SetText("|cff" .. T.Hex(C.warn) .. L["stuck"] .. ": " .. r.block .. "|r")
+        elseif m.state == "same" and m.routeDiff and #m.routeDiff > 0 then
             r.state:SetText("|cff" .. T.Hex(C.warn) .. L["settings differ"] .. "|r")
         else
             r.state:SetText(ns.STATE_TEXT[m.state](m))
@@ -223,6 +244,8 @@ function W:Refresh()
     local top = 40 + GUIDE_H + 8
     local missH = ns.Missing and ns.Missing:Layout(-top - listH - 8, snap) or 0
     if missH > 0 then missH = missH + 8 end
+    local shareH = ns.Share and ns.Share:Layout(-top - listH - missH - 8, snap) or 0
+    if shareH > 0 then missH = missH + shareH + 8 end
     local xpH = ns.XP and ns.XP:Layout(-top - listH - missH - 8, snap) or 0
     if xpH > 0 then xpH = xpH + 8 end
     xpH = xpH + missH

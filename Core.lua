@@ -45,6 +45,9 @@ local DEFAULTS = {
     slackMeter = true,     -- leader: who keeps the group waiting (Slack.lua)
     xpOverview = true,     -- experience of the group (XP.lua)
     missingQuests = true,  -- quests the guide still needs but I don't have (Missing.lua)
+    showBlockers = true,   -- why my step can't be done yet (Blockers.lua)
+    shareQuests = true,    -- see which of my quests others want (Share.lua)
+    autoShare = false,     -- share them by myself
     minimapButton = true,
     minimapAngle = 200,
     locked = false,        -- windows can't be dragged
@@ -373,6 +376,8 @@ local function StepLine(n)
     local id, base = step and tonumber(step.stepId), guide and tonumber(guide.guideId)
     if id and base then return id - base end
 end
+
+ns.StepLine = StepLine
 
 -- My step for a line: that step, or the next one I have (the one at the line
 -- may be for another class). Returns index, exact.
@@ -1163,12 +1168,18 @@ local function HandleMessage(text, sender)
         Debounce("route", 1.2, function() SendRoute(IsLeader() and "W" or "V") end)
         Debounce("xp", 1.5, function() if ns.XP then ns.XP:Send() end end)
         Debounce("missing", 1.8, function() if ns.Missing then ns.Missing:Send(true) end end)
+        Debounce("blockers", 2.1, function() if ns.Blockers then ns.Blockers:Send(true) end end)
+        Debounce("share", 2.4, function() if ns.Share then ns.Share:Send(true) end end)
     elseif kind == "S" then
         local st = Guide() or {}
         st.step, st.total, st.line = tonumber(f[6]), tonumber(f[7]), tonumber(f[8])
         st.route = statuses[who] and statuses[who].route
         statuses[who] = st
         Changed()
+    elseif kind == "Y" then
+        if ns.Blockers then ns.Blockers:OnMessage(who, f) end
+    elseif kind == "H" then
+        if ns.Share then ns.Share:OnMessage(who, f) end
     elseif kind == "M" then
         if ns.Missing then ns.Missing:OnMessage(who, f) end
     elseif kind == "X" then
@@ -1271,6 +1282,7 @@ function ns.Snapshot()
             lead = Plain(UnitIsGroupLeader(m.unit)) and true or false,
             state = state, guide = guide, step = step, total = total, line = line,
             unit = m.unit, connected = Plain(UnitIsConnected and UnitIsConnected(m.unit)) ~= false,
+            blocker = ns.Blockers and db.showBlockers and ns.Blockers:Get(m.name, me) or nil,
         }
         if member.lead then snap.leaderStep, snap.leaderTotal, snap.leaderLine = step, total, line end
         snap.members[#snap.members + 1] = member
@@ -1383,6 +1395,23 @@ SlashCmdList.SYNCLINE = function(msg)
         ns.Actions.Suggest()
     elseif cmd == L.CMD_SKIP or cmd == "skip" then
         ns.Actions.RequestSkip()   -- leader: skips for the group, member: asks the leader
+    elseif cmd == L.CMD_AUTOSHARE or cmd == "autoshare" then
+        if ns.Share then
+            if rest == L.CMD_ON or rest == "on" then ns.Share:SetAuto(true)
+            elseif rest == L.CMD_OFF or rest == "off" then ns.Share:SetAuto(false)
+            else ns.Share:SetAuto(not ns.db.autoShare) end
+        end
+    elseif cmd == L.CMD_SHARE or cmd == "share" then
+        if ns.Share then
+            local n = ns.Share:ShareAll()
+            if n == 0 then Print(L.SHARE_NOTHING) end
+        end
+    elseif cmd == L.CMD_WHY or cmd == "why" then
+        if ns.Blockers then
+            local list = ns.Blockers:Check()
+            if #list == 0 then Print(L.BLOCK_NONE) end
+            for _, r in ipairs(list) do Print(ns.Blockers:Text(r)) end
+        end
     elseif cmd == L.CMD_MISSING or cmd == "missing" then
         if ns.Missing then ns.Missing:PrintList() end
     elseif cmd == L.CMD_ROUTE or cmd == "route" then
@@ -1431,6 +1460,8 @@ local function OnGroupChanged()
             leaderRoute, lastRouteSent = nil, nil
             if ns.XP then ns.XP:Forget() end
             if ns.Missing then ns.Missing:Forget() end
+            if ns.Blockers then ns.Blockers:Forget() end
+            if ns.Share then ns.Share:Forget() end
             wipe(statuses)
             Changed()
         end)
@@ -1458,6 +1489,8 @@ frame:SetScript("OnEvent", function(_, event, ...)
             hooksecurefunc(rxp, "SetStep", function()
                 Debounce("step", 1.5, SendStep)
                 if ns.Missing then ns.Missing.Soon() end
+                if ns.Blockers then ns.Blockers.Soon() end
+                if ns.Share then ns.Share.Soon() end
                 Changed()
             end)
         end

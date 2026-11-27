@@ -10,6 +10,8 @@ assert(loadfile("Theme.lua"))("Syncline", ns)
 assert(loadfile("Core.lua"))("Syncline", ns)
 assert(loadfile("XP.lua"))("Syncline", ns)
 assert(loadfile("Missing.lua"))("Syncline", ns)
+assert(loadfile("Blockers.lua"))("Syncline", ns)
+assert(loadfile("Share.lua"))("Syncline", ns)
 assert(loadfile("Slack.lua"))("Syncline", ns)
 assert(loadfile("GroupWindow.lua"))("Syncline", ns)
 assert(loadfile("Options.lua"))("Syncline", ns)
@@ -507,6 +509,102 @@ SlashCmdList.SYNCLINE("")
 SlashCmdList.SYNCLINE("fehlend")
 check(logHas("1 Quest(s), die dein Guide noch braucht") and logHas("Die Spur der Räuber (Ziele bei Schritt 4)"), "/sl fehlend")
 ONQUEST[101] = true; Miss:Scan(); ABANDONING = nil
+
+---------------------------------------------------------------------------
+-- Why can't the step be done yet? (same chain)
+---------------------------------------------------------------------------
+local Blk = ns.Blockers
+local function codes(n) local t = {} for _, r in ipairs(Blk:Check(n)) do t[#t + 1] = r.code .. (r.quest and (":" .. r.quest) or "") end return table.concat(t, " ") end
+wipe(ONQUEST); wipe(TURNEDIN)
+-- step 3 turns A in and accepts B: A's turn-in is the step's own job
+ONQUEST[100] = true
+check(not codes(3):find("prereq", 1, true), "own turn-in is no prerequisite: " .. codes(3))
+-- step 6 needs C turned in
+check(codes(6) == "prereq:102", "prerequisite C: " .. codes(6))
+check(Blk:Text(Blk:Check(6)[1]) == "erst |cffffd100Das Lager|r abgeben", "text: " .. Blk:Text(Blk:Check(6)[1]))
+check(Blk:Text({ code = "prereq", quest = 101, step = 5 }) == "erst |cffffd100Die Spur der Räuber|r abgeben (Schritt 5)", "with the step")
+-- step 4 completes B, which isn't in the log
+check(codes(4) == "notinlog:101", "not in the log: " .. codes(4))
+-- step 5 turns B in: in the log but not done
+ONQUEST[101] = true
+OBJECTIVES[101] = { { text = "Räuber getötet: 3/8", finished = false } }
+check(codes(5) == "notdone:101", "objectives open: " .. codes(5))
+check(Blk:Text(Blk:Check(5)[1]):find("Räuber getötet: 3/8", 1, true), "objective text")
+-- already turned in
+TURNEDIN[200] = true
+check(codes(7) == "already:200", "already turned in: " .. codes(7))
+TURNEDIN[200] = nil
+-- level: needs 50 (I'm 44), overleveled below 10
+chain.steps[7].elements[2] = { tag = "xp", level = 50 }
+check(codes(7):find("level", 1, true), "needs level 50: " .. codes(7))
+check(Blk:Text({ code = "level", arg = 50 }) == "braucht Stufe 50 (du bist " .. MYXP.level .. ")", "level text")
+chain.steps[7].elements[2] = { tag = "xp", level = 10, reverseLogic = true }
+check(codes(7):find("over", 1, true), "overleveled: " .. codes(7))
+chain.steps[7].elements[2] = nil
+-- quest log full
+QUESTMAX = 3
+check(codes(7) == "logfull", "log full: " .. codes(7))
+QUESTMAX = 25
+-- grey quest in my log
+QUESTLOG[#QUESTLOG + 1] = { questID = 200, xp = 100, level = 20, done = false }
+ONQUEST[200] = true
+check(codes(8):find("grey:200", 1, true), "grey: " .. codes(8))
+table.remove(QUESTLOG); ONQUEST[200] = nil
+-- the group gets the first reason; the window shows Bob's
+RXP.SetStep(6); Blk:Update(); RunTimers()
+check(lastSent("Y^") == "Y^2^18^prereq^102^", "sent: " .. tostring(lastSent("Y^")))
+T.OnMessage("Y^2^18^prereq^102^", "Bob Beansen")
+T.OnMessage("S^2^" .. (T.Mine().id or "") .. "^" .. DE .. "^43-44 Flusslande II^6^10^18", "Bob Beansen")
+if not ns.GroupWindow:IsShown() then SlashCmdList.SYNCLINE("") end
+ns.GroupWindow:Refresh()
+check(TextShown("hängt: erst |cffffd100Das Lager|r abgeben"), "Bob stuck in the window")
+check(TextShown("Du: erst |cffffd100Das Lager|r abgeben"), "my own reason in the guide card")
+T.OnMessage("Y^2^18", "Bob Beansen")
+check(Blk:Get("Bob-Beansen") == nil, "Bob unstuck")
+SlashCmdList.SYNCLINE("warum")
+check(logHas("erst |cffffd100Das Lager|r abgeben"), "/sl warum")
+
+---------------------------------------------------------------------------
+-- Share quests
+---------------------------------------------------------------------------
+local Sh = ns.Share
+-- what my guide still wants: from step 6 on, not in the log, not turned in
+ONQUEST[101] = nil
+check(table.concat(Sh:Scan(), ",") == "103,200", "my wanted: " .. table.concat(Sh:Scan(), ","))
+Sh:Send(true); RunTimers()
+check(lastSent("H^") == "H^2^103,200", "sent: " .. tostring(lastSent("H^")))
+-- Bob wants 1 and 3 (both in my log, 3 not shareable)
+QUESTLOG[4].pushable = false
+T.OnMessage("H^2^1,3,999", "Bob Beansen")
+T.OnMessage("H^2^1", "Fluffy-Shocks")
+local offers = Sh:Offers()
+check(#offers == 1 and offers[1].quest == 1 and offers[1].who[1] == "Bob" and offers[1].who[2] == "Fluffy", "offers: " .. #offers)
+ns.GroupWindow:Refresh()
+check(TextShown("QUESTS TEILEN") and TextShown("für Bob, Fluffy"), "share card")
+wipe(PUSHED)
+Sh:ShareQuest(1); RunTimers()
+check(PUSHED[1] == 1 and logHas("mit der Gruppe geteilt (für Bob, Fluffy)"), "shared with a click")
+wipe(PUSHED)
+SlashCmdList.SYNCLINE("teilen"); RunTimers()
+check(PUSHED[1] == 1, "/sl teilen shares all")
+-- autoshare: shares what comes in, not twice in a minute
+wipe(PUSHED); NOW = NOW + 61
+SlashCmdList.SYNCLINE("autoteilen"); RunTimers()
+check(ns.db.autoShare and logHas("Autoteilen an"), "autoshare on")
+check(PUSHED[1] == 1, "autoshare shares")
+T.OnMessage("H^2^1", "Bob Beansen"); RunTimers()
+check(#PUSHED == 1, "not again within a minute")
+NOW = NOW + 61
+T.OnMessage("H^2^1", "Bob Beansen"); RunTimers()
+check(#PUSHED == 2, "again after a minute")
+STATE.combat = true; NOW = NOW + 61
+T.OnMessage("H^2^1", "Bob Beansen"); RunTimers()
+check(#PUSHED == 2, "not in combat")
+STATE.combat = false
+SlashCmdList.SYNCLINE("autoteilen aus")
+check(not ns.db.autoShare, "autoshare off")
+QUESTLOG[4].pushable = nil
+SlashCmdList.SYNCLINE("")
 
 RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
 

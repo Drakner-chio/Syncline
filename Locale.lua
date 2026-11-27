@@ -34,6 +34,23 @@ L.CMD_OPTIONS = "options"
 L.CMD_SKIP, L.CMD_PULL = "skip", "pull"
 L.CMD_ROUTE = "route"
 L.CMD_MISSING = "missing"
+L.CMD_AUTOSHARE, L.CMD_SHARE, L.CMD_WHY = "autoshare", "share", "why"
+L.BLOCK_PREREQ = "turn in |cffffd100%s|r first"
+L.BLOCK_PREREQ_AT = "turn in |cffffd100%s|r first (step %d)"
+L.BLOCK_LEVEL = "needs level %d (you're %d)"
+L.BLOCK_LEVEL_OTHER = "needs level %d"
+L.BLOCK_OVER = "only below level %d: overleveled, RestedXP skips it"
+L.BLOCK_GREY = "|cffffd100%s|r is grey: hardly any experience"
+L.BLOCK_ALREADY = "|cffffd100%s|r is already turned in"
+L.BLOCK_LOGFULL = "quest log full (%d)"
+L.BLOCK_NOTINLOG = "|cffffd100%s|r isn't in the quest log"
+L.BLOCK_NOTDONE = "|cffffd100%s|r: objectives still open"
+L.BLOCK_NOTDONE_AT = "|cffffd100%s|r: %s"
+L.BLOCK_NONE = "Nothing in the way: the step can be done."
+L.SHARED = "Shared |cffffd100%s|r with the group (for %s)."
+L.SHARE_NOTHING = "Nobody needs a quest from your log right now."
+L.AUTOSHARE_ON = "Autoshare on: quests the others need are shared by themselves."
+L.AUTOSHARE_OFF = "Autoshare off."
 L.MISSING_TURNIN = "turn-in"
 L.MISSING_COMPLETE = "objectives"
 L.MISSING_ENTRY = "%s (%s at step %d)"
@@ -81,6 +98,9 @@ L.HELP = {
     "|cffffd100/sl pull|r  leader: everyone in the guide to my step",
     "|cffffd100/sl route|r  leader: send my RestedXP route settings (dungeons, ...) again",
     "|cffffd100/sl missing|r  quests your guide still needs that aren't in your log",
+    "|cffffd100/sl why|r  why the step you're at can't be done yet",
+    "|cffffd100/sl share|r  share the quests the others need",
+    "|cffffd100/sl autoshare|r  share them automatically (on/off)",
     "|cffffd100/sl auto|r / |cffffd100ask|r  switch on my own / ask first",
     "|cffffd100/sl on|r / |cffffd100off|r  sync on or off",
 }
@@ -128,6 +148,23 @@ if GetLocale() == "deDE" then
     L.CMD_SKIP, L.CMD_PULL = "skippen", "herholen"
     L.CMD_ROUTE = "route"
     L.CMD_MISSING = "fehlend"
+    L.CMD_AUTOSHARE, L.CMD_SHARE, L.CMD_WHY = "autoteilen", "teilen", "warum"
+    L.BLOCK_PREREQ = "erst |cffffd100%s|r abgeben"
+    L.BLOCK_PREREQ_AT = "erst |cffffd100%s|r abgeben (Schritt %d)"
+    L.BLOCK_LEVEL = "braucht Stufe %d (du bist %d)"
+    L.BLOCK_LEVEL_OTHER = "braucht Stufe %d"
+    L.BLOCK_OVER = "nur unter Stufe %d: überlevelt, RestedXP überspringt ihn"
+    L.BLOCK_GREY = "|cffffd100%s|r ist grau: kaum noch EP"
+    L.BLOCK_ALREADY = "|cffffd100%s|r ist schon abgegeben"
+    L.BLOCK_LOGFULL = "Questlog voll (%d)"
+    L.BLOCK_NOTINLOG = "|cffffd100%s|r ist nicht im Questlog"
+    L.BLOCK_NOTDONE = "|cffffd100%s|r: Ziele noch offen"
+    L.BLOCK_NOTDONE_AT = "|cffffd100%s|r: %s"
+    L.BLOCK_NONE = "Nichts im Weg: Der Schritt ist machbar."
+    L.SHARED = "|cffffd100%s|r mit der Gruppe geteilt (für %s)."
+    L.SHARE_NOTHING = "Gerade braucht niemand eine Quest aus deinem Log."
+    L.AUTOSHARE_ON = "Autoteilen an: Quests, die den anderen fehlen, werden von selbst geteilt."
+    L.AUTOSHARE_OFF = "Autoteilen aus."
     L.MISSING_TURNIN = "Abgabe"
     L.MISSING_COMPLETE = "Ziele"
     L.MISSING_ENTRY = "%s (%s bei Schritt %d)"
@@ -175,6 +212,9 @@ if GetLocale() == "deDE" then
         "|cffffd100/sl herholen|r  Leiter: alle im Guide zu meinem Schritt holen",
         "|cffffd100/sl route|r  Leiter: meine RestedXP-Routeneinstellungen (Dungeons, ...) nochmal senden",
         "|cffffd100/sl fehlend|r  Quests, die dein Guide noch braucht, die aber nicht im Log sind",
+        "|cffffd100/sl warum|r  warum der aktuelle Schritt noch nicht geht",
+        "|cffffd100/sl teilen|r  Quests teilen, die den anderen fehlen",
+        "|cffffd100/sl autoteilen|r  automatisch teilen (an/aus)",
         "|cffffd100/sl auto|r / |cffffd100fragen|r  selbst wechseln / vorher fragen",
         "|cffffd100/sl an|r / |cffffd100aus|r  Sync an oder aus",
     }
@@ -287,6 +327,17 @@ if GetLocale() == "deDE" then
         ["Nobody sent experience yet (everyone needs Syncline)."] = "Noch keine EP-Daten (alle brauchen Syncline).",
         ["Experience overview of the group"] = "EP-Übersicht der Gruppe",
         ["Missing quests"] = "Fehlende Quests",
+        ["Why the step can't be done yet"] = "Warum der Schritt noch nicht geht",
+        ["stuck"] = "hängt",
+        ["You"] = "Du",
+        ["Share quests"] = "Quests teilen",
+        ["Share all"] = "Alle teilen",
+        ["Share"] = "Teilen",
+        ["for %s"] = "für %s",
+        ["auto"] = "automatisch",
+        ["Show why a step can't be done yet"] = "Zeigen, warum ein Schritt noch nicht geht",
+        ["Show quests I can share"] = "Quests zeigen, die ich teilen kann",
+        ["Share them automatically (/sl autoshare)"] = "Automatisch teilen (/sl autoteilen)",
         ["Missing quests and abandon warning"] = "Fehlende Quests und Warnung beim Abbrechen",
         ["Shows quests your RestedXP guide still wants you to complete or turn in later, but that are no longer in your quest log, and warns before you abandon one the guide still needs."] =
             "Zeigt Quests, die dein RestedXP-Guide später noch erledigen oder abgeben will, die aber nicht mehr in deinem Questlog sind, und warnt, bevor du eine abbrichst, die der Guide noch braucht.",

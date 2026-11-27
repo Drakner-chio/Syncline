@@ -226,6 +226,8 @@ local function HookAbandon()
 end
 
 M.HookAbandon = HookAbandon
+-- shared with Blockers.lua and Share.lua
+M.OnQuest, M.TurnedIn, M.CurrentStep, M.Elements, M.RXP = OnQuest, TurnedIn, CurrentStep, Elements, RXP
 
 ---------------------------------------------------------------------------
 -- In the group window: who is missing what (only when someone is)

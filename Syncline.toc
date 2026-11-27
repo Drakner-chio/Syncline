@@ -21,6 +21,8 @@ Theme.lua
 Core.lua
 XP.lua
 Missing.lua
+Blockers.lua
+Share.lua
 Slack.lua
 GroupWindow.lua
 Options.lua

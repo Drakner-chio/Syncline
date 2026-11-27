@@ -1,5 +1,19 @@
 # Syncline
 
+## 0.12.0
+- Warum geht der Schritt nicht? Syncline prüft den aktuellen Schritt und nennt den Grund:
+  - Vorquest noch nicht abgegeben (mit Schritt)
+  - Stufe zu niedrig, überlevelt bzw. grau
+  - schon abgegeben
+  - Questlog voll
+  - Quest nicht im Log
+  - Ziele noch offen (mit Fortschritt, z. B. „Räuber getötet: 3/8“)
+
+  Dein eigener Grund steht im Gruppenfenster unter dem Gruppen-Guide. Bei Mitgliedern steht „hängt: …“, der Tooltip zeigt alles. `/sl warum` listet die Gründe im Chat.
+- Quests teilen: Jeder schickt, welche Quests sein Guide ab jetzt noch braucht und die ihm fehlen. Im Gruppenfenster erscheint „Quests teilen“ mit den Quests aus deinem Log, die anderen fehlen, und für wen. Ein Klick auf „Teilen“ oder „Alle teilen“ genügt, oder `/sl teilen`.
+- Autoteilen: `/sl autoteilen` (oder `/sl autoshare`) teilt solche Quests von selbst, nicht im Kampf und dieselbe Quest höchstens einmal pro Minute.
+- Alles sprachunabhängig über Quest-IDs, in den Einstellungen einzeln abschaltbar.
+
 ## 0.11.0
 - Fehlende Quests: Syncline geht deinen RestedXP-Guide ab dem aktuellen Schritt durch und findet Quests, die der Guide später noch erledigen oder abgeben will, die aber nicht mehr in deinem Questlog sind (nicht abgegeben und vorher im Guide auch nicht neu angenommen). Jede neue fehlende Quest wird einmal im Chat gemeldet, `/sl fehlend` listet alle mit Schritt.
 - Warnung beim Abbrechen: Bricht man eine Quest ab, die der Guide später noch braucht, kommt ein Hinweis mit dem Schritt, an dem sie fehlen würde. Sagt der Guide gerade selbst „abbrechen“ oder nimmt er die Quest vorher neu an, kommt keine Warnung.

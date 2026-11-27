@@ -62,7 +62,7 @@ local function Build()
 
     -- General
     y = y - 138
-    local gen = T.Card(frame, "General", PAD, y, cw, 170)
+    local gen = T.Card(frame, "General", PAD, y, cw, 248)
     controls[#controls + 1] = T.Switch(gen, "Minimap button", 16, -34,
         function() return ns.db.minimapButton end,
         function(v) ns.db.minimapButton = v; ns.UpdateMinimapButton() end)
@@ -79,8 +79,17 @@ local function Build()
         function(v) ns.db.missingQuests = v; if ns.Missing then ns.Missing:Update() end; ns.GroupWindow:Refresh() end)
     T.Tooltip(controls[#controls], "Missing quests",
         "Shows quests your RestedXP guide still wants you to complete or turn in later, but that are no longer in your quest log, and warns before you abandon one the guide still needs.")
+    controls[#controls + 1] = T.Switch(gen, "Show why a step can't be done yet", 16, -138,
+        function() return ns.db.showBlockers end,
+        function(v) ns.db.showBlockers = v; ns.GroupWindow:Refresh() end)
+    controls[#controls + 1] = T.Switch(gen, "Show quests I can share", 16, -164,
+        function() return ns.db.shareQuests end,
+        function(v) ns.db.shareQuests = v; ns.GroupWindow:Refresh() end)
+    controls[#controls + 1] = T.Switch(gen, "Share them automatically (/sl autoshare)", 16, -190,
+        function() return ns.db.autoShare end,
+        function(v) if ns.Share then ns.Share:SetAuto(v) end end)
     local found = T.Text(gen, "", 11, C.faint, true)
-    found:SetPoint("TOPLEFT", 16, -142)
+    found:SetPoint("TOPLEFT", 16, -220)
     controls[#controls + 1] = { Refresh = function()
         local rxp = C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("RXPGuides")
         found:SetText(L["RestedXP Guides: %s"]:format(rxp and ("|cff5cd97a" .. L["found"] .. "|r")
@@ -91,7 +100,7 @@ local function Build()
     hint:SetText("/sl " .. L.CMD_OPTIONS .. "  ·  /sl " .. L.CMD_HELP .. "  ·  v" .. tostring(ns.VERSION))
     hint:SetPoint("BOTTOMLEFT", PAD + 2, 12)
 
-    frame:SetHeight(-y + 170 + 40)
+    frame:SetHeight(-y + 248 + 40)
     frame:SetScript("OnShow", function() O:Refresh() end)
 end
 

@@ -194,3 +194,21 @@ function RXP.IsQuestTurnedIn(id) return TURNEDIN[id] end
 ABANDONING = nil
 C_QuestLog.SetAbandonQuest = function() end
 C_QuestLog.GetAbandonQuest = function() return ABANDONING end
+
+-- quest log details, sharing
+QUESTMAX = 25
+C_QuestLog.GetMaxNumQuestsCanAccept = function() return QUESTMAX end
+C_QuestLog.GetNumQuestLogEntries = function()
+    local n = 0 for _, q in ipairs(QUESTLOG) do if not q.isHeader then n = n + 1 end end
+    return #QUESTLOG, n
+end
+C_QuestLog.GetLogIndexForQuestID = function(id) for i, q in ipairs(QUESTLOG) do if q.questID == id then return i end end end
+C_QuestLog.GetQuestObjectives = function(id) return OBJECTIVES[id] end
+C_QuestLog.SetSelectedQuest = function() end
+OBJECTIVES = {}
+function RXP.GetLogIndexForQuestID(id)
+    for i, q in ipairs(QUESTLOG) do if q.questID == id then return i, q.pushable ~= false end end
+end
+function GetQuestGreenRange() return 8 end
+PUSHED = {}
+function QuestLogPushQuest(i) PUSHED[#PUSHED + 1] = QUESTLOG[i].questID end
