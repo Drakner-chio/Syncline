@@ -51,6 +51,10 @@ L.SHARED = "Shared |cffffd100%s|r with the group (for %s)."
 L.SHARE_NOTHING = "Nobody needs a quest from your log right now."
 L.AUTOSHARE_ON = "Autoshare on: quests the others need are shared by themselves."
 L.AUTOSHARE_OFF = "Autoshare off."
+L.ALL_DONE = "Everyone is done with %s – off to turn it in!"
+L.ACCEPT_FORGOT = "You didn't accept %s (step %d)! Your guide still needs it."
+L.ACCEPT_FORGOT_OTHER = "%s didn't accept %s."
+L.ACCEPT_FORGOT_SHORT = "%s (not accepted at step %d)"
 L.MISSING_TURNIN = "turn-in"
 L.MISSING_COMPLETE = "objectives"
 L.MISSING_ENTRY = "%s (%s at step %d)"
@@ -165,6 +169,10 @@ if GetLocale() == "deDE" then
     L.SHARE_NOTHING = "Gerade braucht niemand eine Quest aus deinem Log."
     L.AUTOSHARE_ON = "Autoteilen an: Quests, die den anderen fehlen, werden von selbst geteilt."
     L.AUTOSHARE_OFF = "Autoteilen aus."
+    L.ALL_DONE = "Alle sind fertig mit %s – ab zur Abgabe!"
+    L.ACCEPT_FORGOT = "Du hast %s nicht angenommen (Schritt %d)! Dein Guide braucht sie noch."
+    L.ACCEPT_FORGOT_OTHER = "%s hat %s nicht angenommen."
+    L.ACCEPT_FORGOT_SHORT = "%s (bei Schritt %d nicht angenommen)"
     L.MISSING_TURNIN = "Abgabe"
     L.MISSING_COMPLETE = "Ziele"
     L.MISSING_ENTRY = "%s (%s bei Schritt %d)"
@@ -339,6 +347,30 @@ if GetLocale() == "deDE" then
         ["Show why a step can't be done yet"] = "Zeigen, warum ein Schritt noch nicht geht",
         ["Show quests I can share"] = "Quests zeigen, die ich teilen kann",
         ["Share them automatically (/sl autoshare)"] = "Automatisch teilen (/sl autoteilen)",
+        ["not accepted"] = "nicht angenommen",
+        ["Quest progress"] = "Questfortschritt",
+        ["Group step"] = "Gruppenschritt",
+        ["everyone has the quest and is close"] = "alle haben die Quest und sind in der Nähe",
+        ["lacks %s"] = "fehlt %s",
+        ["not in range"] = "nicht in Reichweite",
+        ["done"] = "fertig",
+        ["Hearthstone and flight paths"] = "Ruhestein und Flugpunkte",
+        ["ready"] = "bereit",
+        ["%d min"] = "%d Min.",
+        ["Hearth"] = "Ruhestein",
+        ["set to %s"] = "steht auf %s",
+        ["lacks flight path %s"] = "Flugpunkt fehlt: %s",
+        ["all set"] = "alles bereit",
+        ["Quest helpers"] = "Quest-Helfer",
+        ["Quest progress of the group"] = "Questfortschritt der Gruppe",
+        ["Everyone's progress on the quests of the step, and a word when everyone is done."] =
+            "Fortschritt aller bei den Quests des Schritts, und eine Meldung, wenn alle fertig sind.",
+        ["Group steps: who lacks the quest, who is far"] = "Gruppenschritte: wem die Quest fehlt, wer weit weg ist",
+        ["For steps RestedXP marks for groups: who doesn't have the quest yet and who isn't in range."] =
+            "Bei Schritten, die RestedXP für Gruppen markiert: wer die Quest noch nicht hat und wer nicht in Reichweite ist.",
+        ["Missing quests, not accepted, abandon warning"] = "Fehlende und nicht angenommene Quests, Abbruch-Warnung",
+        ["When the guide hearths soon: everyone's hearthstone cooldown and whether it's set where the guide expects. Flight paths the guide flies to soon that someone hasn't got."] =
+            "Wenn der Guide bald den Ruhestein nutzt: Abklingzeit bei allen und ob er dort steht, wo der Guide ihn erwartet. Dazu Flugpunkte, die der Guide bald anfliegt und jemandem fehlen.",
         ["Missing quests and abandon warning"] = "Fehlende Quests und Warnung beim Abbrechen",
         ["Shows quests your RestedXP guide still wants you to complete or turn in later, but that are no longer in your quest log, and warns before you abandon one the guide still needs."] =
             "Zeigt Quests, die dein RestedXP-Guide später noch erledigen oder abgeben will, die aber nicht mehr in deinem Questlog sind, und warnt, bevor du eine abbrichst, die der Guide noch braucht.",

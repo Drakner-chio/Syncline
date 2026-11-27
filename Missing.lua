@@ -4,6 +4,8 @@
 -- before I abandon a quest the guide still needs, and the group sees who is
 -- missing what:
 --   M^<protocol>^<count>^<quest id,quest id,...>   (at most 12 ids)
+-- An id with "!" was to be accepted only a few steps ago: not lost, but
+-- forgotten when passing its quest giver (the accept check).
 
 local ADDON, ns = ...
 local L, T = ns.L, ns.Theme
@@ -12,9 +14,11 @@ local M = {}
 ns.Missing = M
 
 local MAX_SENT = 12
+local FRESH = 15           -- an accept this many steps back counts as "not accepted"
 local mine = {}            -- { { id, step, tag } } my missing quests, in guide order
-local others = {}          -- [bare name] = { count, ids = {} }
+local others = {}          -- [bare name] = { count, ids = {}, fresh = { [id] = true } }
 local told = {}            -- quest ids I already told the player about
+local toldOthers = {}      -- ["name:id"] the leader was already told about
 local lastSent
 
 local function RXP()
@@ -96,7 +100,15 @@ function M:Scan()
                     elseif (e.tag == "complete" or e.tag == "turnin") and not again[q] then
                         seen[q] = true
                         if not OnQuest(q) and not TurnedIn(q) then
-                            list[#list + 1] = { id = q, step = i, tag = e.tag }
+                            -- where the guide had me accept it, if that was just now
+                            local acceptStep
+                            for j = cur - 1, math.max(1, cur - FRESH), -1 do
+                                for _, e2 in ipairs(Elements(guide.steps[j])) do
+                                    if type(e2) == "table" and e2.tag == "accept" and tonumber(e2.questId) == q then acceptStep = j end
+                                end
+                                if acceptStep then break end
+                            end
+                            list[#list + 1] = { id = q, step = i, tag = e.tag, acceptStep = acceptStep }
                         end
                     end
                 end
@@ -112,6 +124,7 @@ function M:Mine() return mine end
 -- "Ärger am Fluss (turn-in at step 74)"
 function M:Describe(entry)
     local name = ns.QuestName and ns.QuestName(entry.id) or ("#" .. entry.id)
+    if entry.acceptStep then return L.ACCEPT_FORGOT_SHORT:format(name, entry.acceptStep) end
     local what = entry.tag == "turnin" and L.MISSING_TURNIN or L.MISSING_COMPLETE
     return L.MISSING_ENTRY:format(name, what, entry.step)
 end
@@ -122,11 +135,17 @@ end
 function M:Update()
     if not ns.db or not ns.db.missingQuests then mine = {}; return end
     M:Scan()
-    -- new ones: once in the chat
+    -- new ones: once in the chat; one just passed by gets a louder word
     for _, entry in ipairs(mine) do
         if not told[entry.id] then
             told[entry.id] = true
-            if ns.Print then ns.Print(L.MISSING_NEW, M:Describe(entry)) end
+            if entry.acceptStep and ns.Print then
+                local name = ns.QuestName and ns.QuestName(entry.id) or ("#" .. entry.id)
+                ns.Print("|cffff6060" .. L.ACCEPT_FORGOT:format(name, entry.acceptStep) .. "|r")
+                if PlaySound and SOUNDKIT and SOUNDKIT.RAID_WARNING then pcall(PlaySound, SOUNDKIT.RAID_WARNING) end
+            elseif ns.Print then
+                ns.Print(L.MISSING_NEW, M:Describe(entry))
+            end
         end
     end
     M:Send()
@@ -136,7 +155,7 @@ end
 function M:Send(force)
     if not ns.Send or not (IsInGroup and IsInGroup()) then return end
     local ids = {}
-    for i = 1, math.min(MAX_SENT, #mine) do ids[i] = mine[i].id end
+    for i = 1, math.min(MAX_SENT, #mine) do ids[i] = mine[i].id .. (mine[i].acceptStep and "!" or "") end
     local text = #mine .. "^" .. table.concat(ids, ",")
     if text == lastSent and not force then return end
     lastSent = text
@@ -144,24 +163,40 @@ function M:Send(force)
 end
 
 function M:OnMessage(who, f)
-    local ids = {}
-    for q in tostring(f[4] or ""):gmatch("%d+") do ids[#ids + 1] = tonumber(q) end
-    others[who] = { count = tonumber(f[3]) or #ids, ids = ids }
+    local ids, fresh = {}, {}
+    for q, bang in tostring(f[4] or ""):gmatch("(%d+)(!?)") do
+        q = tonumber(q)
+        ids[#ids + 1] = q
+        if bang == "!" then fresh[q] = true end
+    end
+    others[who] = { count = tonumber(f[3]) or #ids, ids = ids, fresh = fresh }
+    -- the leader hears once about a quest someone didn't accept
+    if ns.db and ns.db.missingQuests and UnitIsGroupLeader and UnitIsGroupLeader("player") then
+        for q in pairs(fresh) do
+            local key = who .. ":" .. q
+            if not toldOthers[key] then
+                toldOthers[key] = true
+                if ns.Print then
+                    ns.Print("|cffff9900" .. L.ACCEPT_FORGOT_OTHER:format(who, ns.QuestName and ns.QuestName(q) or ("#" .. q)) .. "|r")
+                end
+            end
+        end
+    end
     if ns.Changed then ns.Changed() end
 end
 
 -- a member's missing quests (name as in the window): count, ids
 function M:Get(name, me)
     if me then
-        local ids = {}
-        for i, e in ipairs(mine) do ids[i] = e.id end
-        return #mine, ids
+        local ids, fresh = {}, {}
+        for i, e in ipairs(mine) do ids[i] = e.id; if e.acceptStep then fresh[e.id] = true end end
+        return #mine, ids, fresh
     end
     local o = others[(name or ""):gsub("[%- ].*", "")]
-    if o then return o.count, o.ids end
+    if o then return o.count, o.ids, o.fresh or {} end
 end
 
-function M:Forget() wipe(others); lastSent = nil end
+function M:Forget() wipe(others); wipe(toldOthers); lastSent = nil end
 
 function M:PrintList()
     M:Scan()
@@ -277,14 +312,22 @@ function M:Layout(y, snap)
     if not (snap.inGroup and ns.db.missingQuests) then card:Hide(); return 0 end
     local shown = 0
     for _, m in ipairs(snap.members) do
-        local count, ids = M:Get(m.name, m.me)
+        local count, ids, fresh = M:Get(m.name, m.me)
         if count and count > 0 and shown < SHOW then
             shown = shown + 1
             local r = rows[shown]
             r.who, r.me, r.count, r.ids = m.name:gsub("[%- ].*", ""), m.me, count, ids
             r.name:SetText("|cff" .. T.ClassHex(m.class) .. r.who .. "|r")
+            -- not accepted just now first, in red
+            local sorted = {}
+            for _, q in ipairs(ids) do if fresh[q] then sorted[#sorted + 1] = q end end
+            for _, q in ipairs(ids) do if not fresh[q] then sorted[#sorted + 1] = q end end
             local names = {}
-            for i = 1, math.min(2, #ids) do names[i] = ns.QuestName and ns.QuestName(ids[i]) or ("#" .. ids[i]) end
+            for i = 1, math.min(2, #sorted) do
+                local q = sorted[i]
+                local name = ns.QuestName and ns.QuestName(q) or ("#" .. q)
+                names[i] = fresh[q] and ("|cffff6060" .. L["not accepted"] .. ": " .. name .. "|cfff2b84d") or name
+            end
             local more = count > #names and (" +" .. (count - #names)) or ""
             r.list:SetText(count .. ": " .. table.concat(names, ", ") .. more)
             r:Show()

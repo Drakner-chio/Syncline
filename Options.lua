@@ -14,11 +14,11 @@ local controls = {}
 local function Percent(v) return ("%d %%"):format(math.floor(v * 100 + 0.5)) end
 
 local function Build()
-    local W, PAD = 420, 12
+    local W, PAD = 780, 12
     frame = T.Window("SynclineOptionsFrame", "Settings", W, 480, "optionsPos")
     frame:RestorePosition("CENTER", 0, 0)
     frame:SetFrameStrata("DIALOG")
-    local cw = W - 2 * PAD
+    local cw = (W - 3 * PAD) / 2   -- two columns
 
     -- Sync
     local y = -40
@@ -60,9 +60,37 @@ local function Build()
         frame:RestorePosition("CENTER", 0, 0)
     end)
 
-    -- General
-    y = y - 138
-    local gen = T.Card(frame, "General", PAD, y, cw, 248)
+    local leftBottom = -y + 128   -- where the left column ends
+
+    -- right column: quest helpers and general
+    local x2 = PAD + cw + PAD
+    local ry = -40
+    local quests = T.Card(frame, "Quest helpers", x2, ry, cw, 30 + 7 * 26 + 8)
+    local qy = -34
+    local function QSwitch(label, key, after, tipTitle, tip)
+        controls[#controls + 1] = T.Switch(quests, label, 16, qy,
+            function() return ns.db[key] end,
+            function(v) ns.db[key] = v; if after then after(v) end; ns.GroupWindow:Refresh() end)
+        if tip then T.Tooltip(controls[#controls], tipTitle, tip) end
+        qy = qy - 26
+    end
+    QSwitch("Quest progress of the group", "questProgress", nil, "Quest progress",
+        "Everyone's progress on the quests of the step, and a word when everyone is done.")
+    QSwitch("Group steps: who lacks the quest, who is far", "groupQuestCheck", nil, "Group step",
+        "For steps RestedXP marks for groups: who doesn't have the quest yet and who isn't in range.")
+    QSwitch("Missing quests, not accepted, abandon warning", "missingQuests",
+        function() if ns.Missing then ns.Missing:Update() end end, "Missing quests",
+        "Shows quests your RestedXP guide still wants you to complete or turn in later, but that are no longer in your quest log, and warns before you abandon one the guide still needs.")
+    QSwitch("Show why a step can't be done yet", "showBlockers")
+    QSwitch("Hearthstone and flight paths", "travelCheck", nil, "Hearthstone and flight paths",
+        "When the guide hearths soon: everyone's hearthstone cooldown and whether it's set where the guide expects. Flight paths the guide flies to soon that someone hasn't got.")
+    QSwitch("Show quests I can share", "shareQuests")
+    controls[#controls + 1] = T.Switch(quests, "Share them automatically (/sl autoshare)", 16, qy,
+        function() return ns.db.autoShare end,
+        function(v) if ns.Share then ns.Share:SetAuto(v) end end)
+
+    ry = ry - (30 + 7 * 26 + 8) - 10
+    local gen = T.Card(frame, "General", x2, ry, cw, 30 + 3 * 26 + 30)
     controls[#controls + 1] = T.Switch(gen, "Minimap button", 16, -34,
         function() return ns.db.minimapButton end,
         function(v) ns.db.minimapButton = v; ns.UpdateMinimapButton() end)
@@ -74,33 +102,20 @@ local function Build()
     controls[#controls + 1] = T.Switch(gen, "Experience overview of the group", 16, -86,
         function() return ns.db.xpOverview end,
         function(v) ns.db.xpOverview = v; ns.GroupWindow:Refresh() end)
-    controls[#controls + 1] = T.Switch(gen, "Missing quests and abandon warning", 16, -112,
-        function() return ns.db.missingQuests end,
-        function(v) ns.db.missingQuests = v; if ns.Missing then ns.Missing:Update() end; ns.GroupWindow:Refresh() end)
-    T.Tooltip(controls[#controls], "Missing quests",
-        "Shows quests your RestedXP guide still wants you to complete or turn in later, but that are no longer in your quest log, and warns before you abandon one the guide still needs.")
-    controls[#controls + 1] = T.Switch(gen, "Show why a step can't be done yet", 16, -138,
-        function() return ns.db.showBlockers end,
-        function(v) ns.db.showBlockers = v; ns.GroupWindow:Refresh() end)
-    controls[#controls + 1] = T.Switch(gen, "Show quests I can share", 16, -164,
-        function() return ns.db.shareQuests end,
-        function(v) ns.db.shareQuests = v; ns.GroupWindow:Refresh() end)
-    controls[#controls + 1] = T.Switch(gen, "Share them automatically (/sl autoshare)", 16, -190,
-        function() return ns.db.autoShare end,
-        function(v) if ns.Share then ns.Share:SetAuto(v) end end)
     local found = T.Text(gen, "", 11, C.faint, true)
-    found:SetPoint("TOPLEFT", 16, -220)
+    found:SetPoint("TOPLEFT", 16, -116)
     controls[#controls + 1] = { Refresh = function()
         local rxp = C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("RXPGuides")
         found:SetText(L["RestedXP Guides: %s"]:format(rxp and ("|cff5cd97a" .. L["found"] .. "|r")
             or ("|cffdb5c5c" .. L["not found"] .. "|r")))
     end }
+    local rightBottom = -ry + 30 + 3 * 26 + 30
 
     local hint = T.Text(frame, "", 11, C.faint, true)
     hint:SetText("/sl " .. L.CMD_OPTIONS .. "  ·  /sl " .. L.CMD_HELP .. "  ·  v" .. tostring(ns.VERSION))
     hint:SetPoint("BOTTOMLEFT", PAD + 2, 12)
 
-    frame:SetHeight(-y + 248 + 40)
+    frame:SetHeight(math.max(leftBottom, rightBottom) + 40)
     frame:SetScript("OnShow", function() O:Refresh() end)
 end
 

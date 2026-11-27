@@ -23,6 +23,8 @@ XP.lua
 Missing.lua
 Blockers.lua
 Share.lua
+Progress.lua
+Travel.lua
 Slack.lua
 GroupWindow.lua
 Options.lua

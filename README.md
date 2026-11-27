@@ -25,6 +25,10 @@ The CurseForge description lives in [`docs/curseforge.md`](docs/curseforge.md).
 - Why can't I do this step? A missing prerequisite, your level, an overleveled or grey quest, a quest already turned in, a full quest log, a quest not in your log or objectives still open. You see your own reason, and the group sees who is stuck and why.
 
 **Quests**
+- Quest progress of the group: everyone's progress on the quests of the step (`Bob 8/8 · Dani 6/8`), and a word with a sound once everyone is done.
+- Accept check: forget to accept a quest the guide just picked up, and you hear it at once; the leader sees it too.
+- Group steps: for steps RestedXP marks for groups, who doesn't have the quest yet and who isn't in range.
+- Hearthstone and flight paths: when the guide hearths soon, everyone's hearthstone cooldown and whether it's set where the guide expects; flight paths the guide flies to soon that someone hasn't got.
 - Missing quests: quests your guide still expects later that are no longer in your log, for you and for everyone in the group. A warning before you abandon a quest the guide still needs.
 - Share quests: see which quests from your log the others still need and share them with one click, all at once, or automatically (`/sl autoshare`).
 
@@ -43,7 +47,7 @@ RestedXP loads its guides in the client's language, and their names differ: *Res
 - **Public guides** are sent with a language-independent id from [`GuideMap.lua`](GuideMap.lua), built from the RestedXP source for all six RestedXP languages.
 - **Imported guides** (RestedXP's paid Forever guides, which everyone imports in their own language) are recognised by a fingerprint: the level range in the name plus the guide's first quest ids.
 - **Steps** are matched by their line in the guide text, not by their number: RestedXP leaves out steps for other classes and races, so step numbers differ from player to player, the line doesn't.
-- **Route settings and quests** travel as setting keys, RestedXP's dungeon tags and quest ids.
+- **Route settings, quests and flight paths** travel as setting keys, RestedXP's dungeon tags, quest ids and flight path ids. Whether the hearthstone is set right is checked on each client, in its own language.
 
 Every message and window text is then built on each client, in its own language.
 
@@ -79,7 +83,8 @@ Every message and window text is then built on each client, in its own language.
 |---|---|
 | `Core.lua` | messages, guide sync, steps, skips, route settings, slash commands |
 | `GuideMap.lua` | the same guide in every language (generated, don't edit) |
-| `Missing.lua` · `Blockers.lua` · `Share.lua` | missing quests, why a step hangs, sharing quests |
+| `Missing.lua` · `Blockers.lua` · `Share.lua` | missing and not accepted quests, why a step hangs, sharing quests |
+| `Progress.lua` · `Travel.lua` | quest progress and group steps, hearthstone and flight paths |
 | `XP.lua` · `Slack.lua` | experience overview, slack meter |
 | `GroupWindow.lua` · `Options.lua` · `Theme.lua` · `Locale.lua` | windows, settings, look, texts |
 
@@ -87,6 +92,11 @@ Every message and window text is then built on each client, in its own language.
 - **GuideMap** is rebuilt every day by [`.github/workflows/guidemap.yml`](.github/workflows/guidemap.yml) when RestedXP changes its guides. By hand: `python3 tools/build_guidemap.py <path to RXPGuides> > GuideMap.lua`.
 - **Releases**: *Actions → Release → Run workflow* with a version (e.g. `0.12.0`, or `0.12.0-beta1`). It packages the addon and uploads it to GitHub and CurseForge (project 1833016).
 - **CurseForge banners** come from [`docs/banner-source`](docs/banner-source): `python3 docs/banner-source/render.py`.
+
+## Planned
+
+- Quest rewards: which reward is the best upgrade for whom, using [GearShare](https://github.com/Drakner-chio/Gearshare) when it's installed.
+- Quest items and drops: who still needs which quest items, so the group knows who should roll need.
 
 ## License
 

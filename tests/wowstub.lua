@@ -218,3 +218,19 @@ end
 function GetQuestGreenRange() return 8 end
 PUSHED = {}
 function QuestLogPushQuest(i) PUSHED[#PUSHED + 1] = QUESTLOG[i].questID end
+
+-- quest complete, range, hearthstone, flight paths
+COMPLETE = {}
+function RXP.IsQuestComplete(id) return COMPLETE[id] end
+RANGE = { party1 = true, party2 = true }
+function UnitInRange(u) return RANGE[u], true end
+BIND = "Orgrimmar"
+function GetBindLocation() return BIND end
+HEARTH = { 0, 0 }
+C_Container = { GetItemCooldown = function(id) if id == 6948 then return HEARTH[1], HEARTH[2] end return 0, 0 end }
+RXP.player = { faction = "Horde" }
+RXP.FPDB = { Horde = { [12] = { name = "Sentinel Hill" }, [13] = { name = "Crossroads" } } }
+RXPCData.flightPaths = { [13] = "Crossroads" }
+SOUNDKIT = { READY_CHECK = 1, RAID_WARNING = 2 }
+SOUNDS = {}
+function PlaySound(id) SOUNDS[#SOUNDS + 1] = id end

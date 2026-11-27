@@ -24,6 +24,10 @@
 
 ### Quests
 
+- **Quest progress of the group:** everyone's progress on the quests of the step – *Bob 8/8 · Dani 6/8 · Fluffy 3/8* – and a word once everyone is done: off to turn it in
+- **Accept check:** forget to accept a quest the guide just picked up, and you hear it at once – and the leader sees it too
+- **Group steps:** who doesn't have the group quest yet, and who isn't in range
+- **Hearthstone and flight paths:** before the guide hearths, everyone's cooldown and whether the hearthstone is set right; flight paths the guide flies to soon that someone hasn't got
 - **Missing quests:** quests your guide still expects later that are no longer in your log – for you and for everyone in the group – and a warning before you abandon one the guide still needs
 - **Share quests:** see which quests from your log the others still need and share them with one click, all at once, or automatically (`/sl autoshare`)
 

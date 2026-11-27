@@ -12,6 +12,8 @@ assert(loadfile("XP.lua"))("Syncline", ns)
 assert(loadfile("Missing.lua"))("Syncline", ns)
 assert(loadfile("Blockers.lua"))("Syncline", ns)
 assert(loadfile("Share.lua"))("Syncline", ns)
+assert(loadfile("Progress.lua"))("Syncline", ns)
+assert(loadfile("Travel.lua"))("Syncline", ns)
 assert(loadfile("Slack.lua"))("Syncline", ns)
 assert(loadfile("GroupWindow.lua"))("Syncline", ns)
 assert(loadfile("Options.lua"))("Syncline", ns)
@@ -485,10 +487,10 @@ check(#Miss:Scan() == 0, "B in the log, later quests are accepted later")
 ONQUEST[101] = nil
 local nlog = #LOG
 Miss:Update(); Miss:Update()
-local tells = 0 for i = nlog + 1, #LOG do if LOG[i]:find("braucht später noch", 1, true) then tells = tells + 1 end end
+local tells = 0 for i = nlog + 1, #LOG do if LOG[i]:find("nicht angenommen (Schritt 3)", 1, true) then tells = tells + 1 end end
 check(tells == 1, "told once: " .. tells)
 check(logHas("Die Spur der Räuber"), "by name")
-check(lastSent("M^") == "M^2^1^101", "sent: " .. tostring(lastSent("M^")))
+check(lastSent("M^") == "M^2^1^101!", "sent, marked as not accepted: " .. tostring(lastSent("M^")))
 -- abandoning a quest the guide still needs
 ONQUEST[101] = true; ABANDONING = 101
 local np = #POPUPS
@@ -516,7 +518,7 @@ ns.GroupWindow:Refresh()
 check(TextShown("FEHLENDE QUESTS") and TextShown("2: Ärger am Fluss, Kräuter sammeln"), "window card")
 SlashCmdList.SYNCLINE("")
 SlashCmdList.SYNCLINE("fehlend")
-check(logHas("1 Quest(s), die dein Guide noch braucht") and logHas("Die Spur der Räuber (Ziele bei Schritt 4)"), "/sl fehlend")
+check(logHas("1 Quest(s), die dein Guide noch braucht") and logHas("Die Spur der Räuber (bei Schritt 3 nicht angenommen)"), "/sl fehlend")
 ONQUEST[101] = true; Miss:Scan(); ABANDONING = nil
 
 ---------------------------------------------------------------------------
@@ -572,6 +574,95 @@ T.OnMessage("Y^2^18", "Bob Beansen")
 check(Blk:Get("Bob-Beansen") == nil, "Bob unstuck")
 SlashCmdList.SYNCLINE("warum")
 check(logHas("erst |cffffd100Das Lager|r abgeben"), "/sl warum")
+
+---------------------------------------------------------------------------
+-- Quest progress of the group (same chain)
+---------------------------------------------------------------------------
+local Pr = ns.Progress
+STATE.me = "Leader"
+RXP.SetStep(4)                                   -- complete B
+ONQUEST[101] = true
+OBJECTIVES[101] = { { text = "Räuber getötet: 3/8", numFulfilled = 3, numRequired = 8, finished = false } }
+Pr:Scan(); Pr:Send(true); RunTimers()
+check(lastSent("O^") == "O^2^101=3/8", "sent: " .. tostring(lastSent("O^")))
+T.OnMessage("O^2^101=8/8!", "Bob Beansen")
+T.OnMessage("O^2^101=5/8", "Fluffy-Shocks")
+check(not Pr:AllDone(101), "not everyone done")
+if not ns.GroupWindow:IsShown() then SlashCmdList.SYNCLINE("") end
+ns.GroupWindow:Refresh()
+check(TextShown("QUESTFORTSCHRITT"), "progress card")
+check(TextShown("Bob|r |cff5cd97a8/8") and TextShown("Fluffy|r |cffffffff5/8"), "everyone's progress")
+-- everyone done: said once
+OBJECTIVES[101] = { { numFulfilled = 8, numRequired = 8, finished = true } }
+COMPLETE[101] = true
+Pr:Scan()
+local nlog2 = #LOG
+T.OnMessage("O^2^101=8/8!", "Fluffy-Shocks")
+T.OnMessage("O^2^101=8/8!", "Fluffy-Shocks")
+local done = 0 for i = nlog2 + 1, #LOG do if LOG[i]:find("Alle sind fertig mit Die Spur der Räuber", 1, true) then done = done + 1 end end
+check(done == 1 and SOUNDS[#SOUNDS] == 1, "everyone done, once, with a sound: " .. done)
+COMPLETE[101] = nil; OBJECTIVES[101] = nil
+
+---------------------------------------------------------------------------
+-- Group step (same chain)
+---------------------------------------------------------------------------
+chain.steps[6].group = true
+RXP.SetStep(6)
+T.OnMessage("H^2^103", "Bob Beansen")         -- Bob lacks D
+T.OnMessage("H^2^", "Fluffy-Shocks")          -- Fluffy has everything
+RANGE.party2 = false                          -- but is far away
+local gc = Pr:GroupCheck(ns.Snapshot())
+local byName = {} for _, c in ipairs(gc) do byName[c.name] = c end
+check(byName.Bob and byName.Bob.lacks[1] == 103 and not byName.Bob.far, "Bob lacks the quest")
+check(byName.Fluffy and #byName.Fluffy.lacks == 0 and byName.Fluffy.far, "Fluffy is far")
+ns.GroupWindow:Refresh()
+check(TextShown("fehlt Der Anführer") and TextShown("nicht in Reichweite"), "group step in the window")
+RANGE.party2 = true
+T.OnMessage("H^2^", "Bob Beansen")
+check(#Pr:GroupCheck(ns.Snapshot()) == 0, "everyone ready")
+ns.GroupWindow:Refresh()
+check(TextShown("alle haben die Quest und sind in der Nähe"), "all set line")
+chain.steps[6].group = nil
+-- not a group step: no check
+check(Pr:GroupCheck(ns.Snapshot()) == nil, "no group step, no check")
+
+---------------------------------------------------------------------------
+-- Accept check: the leader hears once
+---------------------------------------------------------------------------
+local nlog3 = #LOG
+T.OnMessage("M^2^1^101!", "Bob Beansen")
+T.OnMessage("M^2^1^101!", "Bob Beansen")
+local heard = 0 for i = nlog3 + 1, #LOG do if LOG[i]:find("Bob hat Die Spur der Räuber nicht angenommen", 1, true) then heard = heard + 1 end end
+check(heard == 1, "leader told once: " .. heard)
+ns.GroupWindow:Refresh()
+check(TextShown("nicht angenommen: Die Spur der Räuber"), "window marks it")
+T.OnMessage("M^2^0^", "Bob Beansen")
+
+---------------------------------------------------------------------------
+-- Hearthstone and flight paths (same chain)
+---------------------------------------------------------------------------
+local Tr = ns.Travel
+chain.steps[9].elements[2] = { tag = "hs", text = "Hearth to Goldhain" }
+chain.steps[9].elements[3] = { tag = "bindlocation", location = "Goldhain", flags = 0 }
+chain.steps[10].elements[2] = { tag = "fly", location = "SENTINEL HILL" }
+chain.steps[10].elements[3] = { tag = "fly", location = "CROSSROADS" }
+RXP.SetStep(8)
+HEARTH = { NOW - 100, 3600 }                  -- 3500 s left
+local tm = Tr:Scan()
+check(tm.hsIn == 1 and tm.bindOk == false and tm.bind == "Orgrimmar", "hearth soon, set elsewhere")
+check(#tm.fps == 1 and tm.fps[1] == 12, "lacks Sentinel Hill, knows Crossroads")
+Tr:Send(true); RunTimers()
+check(lastSent("Z^") == "Z^2^3540^1^0^Orgrimmar^12", "sent: " .. tostring(lastSent("Z^")))
+BIND = "Goldhain"
+check(Tr:Scan().bindOk == true, "set right")
+T.OnMessage("Z^2^600^1^1^Goldhain^", "Bob Beansen")
+ns.GroupWindow:Refresh()
+check(TextShown("RUHESTEIN UND FLUGPUNKTE"), "travel card")
+check(TextShown("Flugpunkt fehlt: Sentinel Hill"), "my missing flight path")
+check(TextShown("Ruhestein: |cfff2b84d10 Min."), "Bob's cooldown")
+HEARTH = { 0, 0 }; BIND = "Orgrimmar"
+for i = 2, 3 do chain.steps[9].elements[i] = nil; chain.steps[10].elements[i] = nil end
+RXP.SetStep(6)
 
 ---------------------------------------------------------------------------
 -- Share quests

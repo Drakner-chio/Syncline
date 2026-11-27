@@ -1,5 +1,12 @@
 # Syncline
 
+## 0.13.0
+- Questfortschritt der Gruppe: Für die Quests im aktuellen Schritt zeigt das Gruppenfenster den Fortschritt aller, z. B. „Bob 8/8 · Dani 6/8 · Fluffy 3/8“. Sind alle fertig, meldet Syncline „Alle sind fertig mit … – ab zur Abgabe!“ mit Ton.
+- Annahme-Check: Wer eine Quest nicht angenommen hat, die der Guide vor kurzem (bis 15 Schritte zurück) annehmen ließ, bekommt sofort einen roten Hinweis mit Ton. Der Leiter erfährt es einmal im Chat, im Fenster steht „nicht angenommen: …“ in Rot.
+- Ruhestein und Flugpunkte: Kommt im Guide bald ein Ruhestein-Schritt, zeigt das Fenster die Ruhestein-Abklingzeit aller und ob der Ruhestein dort steht, wo der Guide ihn erwartet. Dazu Flugpunkte, die der Guide bald anfliegt und die jemandem fehlen. Abgeglichen über RestedXPs Ruhestein-Ort und Flugpunkt-IDs, also sprachunabhängig.
+- Gruppenschritte: Bei Schritten, die RestedXP für Gruppen markiert, zeigt das Fenster, wem die Quest noch fehlt und wer nicht in Reichweite ist.
+- Einstellungen in zwei Spalten, mit eigenem Bereich „Quest-Helfer“. Jede Funktion ist einzeln abschaltbar.
+
 ## 0.12.1
 - Fix: Gekaufte Guides mit Kapitelnummer statt Levelbereich (z. B. „11. The Drowned Capitals“ / „11. Die Ertrunkenen Hauptstädte“) wurden bei gemischten Sprachen als „anderer Guide“ angezeigt und nicht übernommen. Der Fingerabdruck nimmt jetzt auch die Kapitelnummer, und ohne Nummer allein die Quests.
 - EP pro Stunde zeigt „–“ statt „0/h“, solange in den letzten 30 Minuten keine EP dazukamen.

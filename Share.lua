@@ -62,6 +62,13 @@ end
 
 function S:Forget() wipe(wanted); lastSent = nil end
 
+-- does a member's guide still want quest q (= they don't have it)? nil: unknown
+function S:Wants(name, q)
+    local set = wanted[(tostring(name or "")):gsub("[%- ].*", "")]
+    if not set then return nil end
+    return set[q] and true or false
+end
+
 ---------------------------------------------------------------------------
 -- What I can give: quests in my log that others want
 ---------------------------------------------------------------------------

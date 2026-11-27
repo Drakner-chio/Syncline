@@ -49,6 +49,9 @@ local DEFAULTS = {
     showBlockers = true,   -- why my step can't be done yet (Blockers.lua)
     shareQuests = true,    -- see which of my quests others want (Share.lua)
     autoShare = false,     -- share them by myself
+    questProgress = true,  -- everyone's progress on the step's quests (Progress.lua)
+    groupQuestCheck = true,-- group steps: who lacks the quest, who is far (Progress.lua)
+    travelCheck = true,    -- hearthstone and flight paths (Travel.lua)
     minimapButton = true,
     minimapAngle = 200,
     locked = false,        -- windows can't be dragged
@@ -1179,12 +1182,18 @@ local function HandleMessage(text, sender)
         Debounce("missing", 1.8, function() if ns.Missing then ns.Missing:Send(true) end end)
         Debounce("blockers", 2.1, function() if ns.Blockers then ns.Blockers:Send(true) end end)
         Debounce("share", 2.4, function() if ns.Share then ns.Share:Send(true) end end)
+        Debounce("progress", 2.7, function() if ns.Progress then ns.Progress:Send(true) end end)
+        Debounce("travel", 3.0, function() if ns.Travel then ns.Travel:Send(true) end end)
     elseif kind == "S" then
         local st = Guide() or {}
         st.step, st.total, st.line = tonumber(f[6]), tonumber(f[7]), tonumber(f[8])
         st.route = statuses[who] and statuses[who].route
         statuses[who] = st
         Changed()
+    elseif kind == "O" then
+        if ns.Progress then ns.Progress:OnMessage(who, f) end
+    elseif kind == "Z" then
+        if ns.Travel then ns.Travel:OnMessage(who, f) end
     elseif kind == "Y" then
         if ns.Blockers then ns.Blockers:OnMessage(who, f) end
     elseif kind == "H" then
@@ -1471,6 +1480,8 @@ local function OnGroupChanged()
             if ns.Missing then ns.Missing:Forget() end
             if ns.Blockers then ns.Blockers:Forget() end
             if ns.Share then ns.Share:Forget() end
+            if ns.Progress then ns.Progress:Forget() end
+            if ns.Travel then ns.Travel:Forget() end
             wipe(statuses)
             Changed()
         end)
@@ -1500,6 +1511,8 @@ frame:SetScript("OnEvent", function(_, event, ...)
                 if ns.Missing then ns.Missing.Soon() end
                 if ns.Blockers then ns.Blockers.Soon() end
                 if ns.Share then ns.Share.Soon() end
+                if ns.Progress then ns.Progress.Soon() end
+                if ns.Travel then ns.Travel.Soon() end
                 Changed()
             end)
         end

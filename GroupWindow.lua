@@ -152,10 +152,14 @@ local function Build()
     Button("request", "Request skip", "Asks the leader to skip your current step for the whole group.",
         function() ns.Actions.RequestSkip() end, false)
 
-    if ns.Missing then ns.Missing:Attach(frame, PAD, cw) end
-    if ns.Share then ns.Share:Attach(frame, PAD, cw) end
-    if ns.XP then ns.XP:Attach(frame, PAD, cw) end
-    if ns.Slack then ns.Slack:Attach(frame, PAD, cw) end
+    -- the cards under the member list, top to bottom; each hides itself when it has nothing
+    W.cards = {}
+    for _, key in ipairs({ "Progress", "Travel", "Missing", "Share", "XP", "Slack" }) do
+        if ns[key] then
+            ns[key]:Attach(frame, PAD, cw)
+            W.cards[#W.cards + 1] = ns[key]
+        end
+    end
 
     local hint = T.Text(frame, "", 11, C.faint, true)
     hint:SetText("/sl  ·  /sl " .. L.CMD_HELP .. "  ·  v" .. tostring(ns.VERSION))
@@ -242,16 +246,11 @@ function W:Refresh()
 
     -- buttons: the leader skips, pulls and sends, members fetch, suggest, ask for a skip
     local top = 40 + GUIDE_H + 8
-    local missH = ns.Missing and ns.Missing:Layout(-top - listH - 8, snap) or 0
-    if missH > 0 then missH = missH + 8 end
-    local shareH = ns.Share and ns.Share:Layout(-top - listH - missH - 8, snap) or 0
-    if shareH > 0 then missH = missH + shareH + 8 end
-    local xpH = ns.XP and ns.XP:Layout(-top - listH - missH - 8, snap) or 0
-    if xpH > 0 then xpH = xpH + 8 end
-    xpH = xpH + missH
-    local slackH = ns.Slack and ns.Slack:Layout(-top - listH - xpH - 8, snap) or 0
-    if slackH > 0 then slackH = slackH + 8 end
-    slackH = slackH + xpH
+    local slackH = 0   -- height of all cards under the list
+    for _, c in ipairs(W.cards or {}) do
+        local h = c:Layout(-top - listH - slackH - 8, snap)
+        if h > 0 then slackH = slackH + h + 8 end
+    end
     local y = -top - listH - slackH - 10
     for _, b in pairs(buttons) do b:Hide() end
     local row
