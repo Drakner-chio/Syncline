@@ -2,54 +2,92 @@
 
 ![Syncline – one guide, everyone in it](docs/images/syncline-1.jpg)
 
-Hält die Gruppe im selben **RestedXP**-Guide: Der Gruppenleiter wählt einen Guide, alle anderen laden automatisch denselben.
+**Level together with RestedXP.** The group leader picks a RestedXP guide and everyone in the group follows – same guide, same route settings, and you see at a glance who is at which step, who is stuck and why, and who needs which quest.
 
-Alle in der Gruppe brauchen RestedXP Guides **und** Syncline.
+Made for **World of Warcraft: Forever**. Interface in English and German.
 
-CurseForge-Beschreibung: [`docs/curseforge.md`](docs/curseforge.md)
+Everyone in the group needs **RestedXP Guides** and **Syncline**: it's the group's addons that talk to each other.
 
-## So funktioniert's
-- Leiter wählt im RestedXP-Fenster einen Guide → geht sofort an die Gruppe.
-- Wer der Gruppe beitritt oder sich einloggt/`/reload` macht, bekommt den Guide des Leiters automatisch.
-- Im Kampf wird erst nach dem Kampf gewechselt.
-- Mitglieder können dem Leiter einen Guide vorschlagen: einfach im RestedXP-Fenster wählen und im Popup „Vorschlagen“ klicken (oder `/sl vorschlagen`). Der Leiter klickt „Übernehmen“ und alle ziehen mit.
-- Jeder behält seinen eigenen Fortschritt im Guide (RestedXP überspringt erledigte Schritte selbst).
+The CurseForge description lives in [`docs/curseforge.md`](docs/curseforge.md).
 
-## Deutscher und englischer Client gemischt
-RestedXP lädt auf jedem Client die Guides in dessen Sprache, und die heißen unterschiedlich
-(„RestedXP Forever Guide (H)“ gegen „RestedXP Forever Route (H)“, „The Barrens“ gegen „Das Brachland“).
-Syncline schickt deshalb eine sprachunabhängige Guide-ID mit (`GuideMap.lua`, aus dem RestedXP-Quellcode
-erzeugt) und jeder lädt die Fassung in seiner eigenen Sprache.
+## Features
 
-`GuideMap.lua` wird von `.github/workflows/guidemap.yml` täglich neu gebaut, wenn RestedXP seine Guides ändert.
-Von Hand: `python3 tools/build_guidemap.py <Pfad zu RXPGuides> > GuideMap.lua`
+**One guide for the group**
+- The leader picks a guide in the RestedXP window as usual, and it goes to the whole group. Whoever joins, logs in or reloads gets it too.
+- Members can suggest a guide: pick one yourself and Syncline offers to suggest it to the leader, who takes it for everyone with one click.
+- The leader's RestedXP route settings (dungeons, skip overleveled steps, group quests, Solo Self Found, EXP rate) go to the group as well, so everyone's guide has the same steps.
+- Nothing switches in combat: it waits until combat ends. Switch right away or get asked first – your choice.
 
-## Fenster und Einstellungen
-- **Minimap-Knopf**: Linksklick öffnet das Gruppenfenster, Rechtsklick die Einstellungen, Ziehen verschiebt ihn.
-- **Gruppenfenster**: Gruppen-Guide, jedes Mitglied mit Status (grün gleicher Guide, rot anderer, grau kein Syncline, orange andere Version), Knöpfe „Guide nochmal senden“ (Leiter) bzw. „Guide des Leiters holen“ und „Meinen Guide vorschlagen“.
-- **Einstellungen**: auch unter Esc → Optionen → AddOns → Syncline.
+**Steps**
+- The group window shows every player's step and how far ahead or behind the leader they are, plus the leader's step with its text.
+- The leader skips a step for the whole group, or pulls everyone to his step. Members ask the leader for a skip.
+- Skip check: before a skip, Syncline shows whether follow-up quests hang on the step (green: safe, orange/red: these quests would be gone) and asks the leader once more.
+- Why can't I do this step? A missing prerequisite, your level, an overleveled or grey quest, a quest already turned in, a full quest log, a quest not in your log or objectives still open. You see your own reason, and the group sees who is stuck and why.
 
-## Befehle
-| Befehl | Was |
+**Quests**
+- Missing quests: quests your guide still expects later that are no longer in your log, for you and for everyone in the group. A warning before you abandon a quest the guide still needs.
+- Share quests: see which quests from your log the others still need and share them with one click, all at once, or automatically (`/sl autoshare`).
+
+**Group overview**
+- Experience: level, experience, rested XP and the XP of quests ready to turn in for everyone, plus XP per hour and the time to the next level.
+- Slack meter (leader only): who keeps the group waiting, with a ranking and titles, and a button to post it in the group chat.
+
+**Your way**
+- Minimap button (left click: group window, right click: settings, drag to move), an entry in the minimap's addon menu, key bindings for skip and the group window.
+- Settings in Syncline's own window, also under *Options → AddOns → Syncline*. Every part can be switched off.
+
+## Mixed client languages
+
+RestedXP loads its guides in the client's language, and their names differ: *RestedXP Forever Guide (H) · 12-17 The Barrens* on an English client is *RestedXP Forever Route (H) · 12-17 Das Brachland* on a German one. Syncline never sends names alone:
+
+- **Public guides** are sent with a language-independent id from [`GuideMap.lua`](GuideMap.lua), built from the RestedXP source for all six RestedXP languages.
+- **Imported guides** (RestedXP's paid Forever guides, which everyone imports in their own language) are recognised by a fingerprint: the level range in the name plus the guide's first quest ids.
+- **Steps** are matched by their line in the guide text, not by their number: RestedXP leaves out steps for other classes and races, so step numbers differ from player to player, the line doesn't.
+- **Route settings and quests** travel as setting keys, RestedXP's dungeon tags and quest ids.
+
+Every message and window text is then built on each client, in its own language.
+
+## Commands
+
+| Command | |
 |---|---|
-| `/sl` | Gruppenfenster: wer ist in welchem Guide |
-| `/sl status` | das Gleiche im Chat |
-| `/sl optionen` | Einstellungen |
-| `/sl minimap` | Minimap-Knopf zeigen/verstecken |
-| `/sl senden` | (Leiter) Guide nochmal an alle schicken |
-| `/sl holen` | Guide des Leiters laden |
-| `/sl vorschlagen` | meinen Guide dem Leiter vorschlagen |
-| `/sl skippen` | Leiter: Schritt für alle überspringen, sonst beim Leiter anfragen |
-| `/sl herholen` | Leiter: alle im Guide zu meinem Schritt holen |
-| `/sl route` | Leiter: RestedXP-Routeneinstellungen (Dungeons, ...) nochmal senden |
-| `/sl fehlend` | Quests, die der Guide noch braucht, die aber nicht im Log sind |
-| `/sl warum` | warum der aktuelle Schritt noch nicht geht |
-| `/sl teilen` | Quests teilen, die den anderen fehlen |
-| `/sl autoteilen` | automatisch teilen (an/aus) |
-| `/sl auto` / `fragen` | sofort wechseln / vorher Popup |
-| `/sl an` / `aus` | Sync an/aus |
-| `/sl version` | eigene Version |
-| `/sl debug` | jede empfangene Nachricht im Chat zeigen |
+| `/sl` | open or close the group window |
+| `/sl status` | who is in which guide at which step, in the chat |
+| `/sl options` | settings |
+| `/sl minimap` | show or hide the minimap button |
+| `/sl send` | (leader) send your guide to the group again |
+| `/sl get` | load the leader's guide |
+| `/sl suggest` | suggest your guide to the leader |
+| `/sl skip` | leader: skip the step for everyone · others: ask the leader |
+| `/sl pull` | (leader) everyone in the guide to your step |
+| `/sl route` | (leader) send your RestedXP route settings again |
+| `/sl why` | why the step you're at can't be done yet |
+| `/sl missing` | quests your guide still needs that aren't in your log |
+| `/sl share` | share the quests the others need |
+| `/sl autoshare` | share them automatically (`on` / `off`) |
+| `/sl auto` / `ask` | switch right away / ask first |
+| `/sl on` / `off` | sync on or off |
+| `/sl version` | your Syncline version |
+| `/sl debug` | show every Syncline message in the chat |
+| `/sl help` | all commands |
 
-## Tests
-`lua5.1 tests/run.lua`
+`/syncline` works as well. German clients also take the German words (`/sl skippen`, `/sl holen`, `/sl warum`, `/sl teilen`, `/sl optionen`, …).
+
+## Development
+
+| File | |
+|---|---|
+| `Core.lua` | messages, guide sync, steps, skips, route settings, slash commands |
+| `GuideMap.lua` | the same guide in every language (generated, don't edit) |
+| `Missing.lua` · `Blockers.lua` · `Share.lua` | missing quests, why a step hangs, sharing quests |
+| `XP.lua` · `Slack.lua` | experience overview, slack meter |
+| `GroupWindow.lua` · `Options.lua` · `Theme.lua` · `Locale.lua` | windows, settings, look, texts |
+
+- **Tests** run outside the game: `lua5.1 tests/run.lua` (a small fake of the game's API and of RestedXP in `tests/wowstub.lua`).
+- **GuideMap** is rebuilt every day by [`.github/workflows/guidemap.yml`](.github/workflows/guidemap.yml) when RestedXP changes its guides. By hand: `python3 tools/build_guidemap.py <path to RXPGuides> > GuideMap.lua`.
+- **Releases**: *Actions → Release → Run workflow* with a version (e.g. `0.12.0`, or `0.12.0-beta1`). It packages the addon and uploads it to GitHub and CurseForge (project 1833016).
+- **CurseForge banners** come from [`docs/banner-source`](docs/banner-source): `python3 docs/banner-source/render.py`.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Bugs and ideas are welcome as issues.
