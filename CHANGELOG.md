@@ -1,5 +1,11 @@
 # Syncline
 
+## 0.11.0
+- Fehlende Quests: Syncline geht deinen RestedXP-Guide ab dem aktuellen Schritt durch und findet Quests, die der Guide später noch erledigen oder abgeben will, die aber nicht mehr in deinem Questlog sind (nicht abgegeben und vorher im Guide auch nicht neu angenommen). Jede neue fehlende Quest wird einmal im Chat gemeldet, `/sl fehlend` listet alle mit Schritt.
+- Warnung beim Abbrechen: Bricht man eine Quest ab, die der Guide später noch braucht, kommt ein Hinweis mit dem Schritt, an dem sie fehlen würde. Sagt der Guide gerade selbst „abbrechen“ oder nimmt er die Quest vorher neu an, kommt keine Warnung.
+- Für die Gruppe: Jeder schickt seine fehlenden Quests mit. Im Gruppenfenster erscheint „Fehlende Quests“ mit allen, denen etwas fehlt, z. B. zum Teilen.
+- In den Einstellungen abschaltbar („Fehlende Quests und Warnung beim Abbrechen“).
+
 ## 0.10.0
 - EP-Übersicht der Gruppe im Gruppenfenster, für alle: pro Mitglied Stufe, ein Balken mit EP (blau), Ruhe-EP (hellblau) und den EP der abgabebereiten Quests (grün), wie viel fehlt, EP pro Stunde und die Zeit bis zum Level-Up. Reichen die abgabebereiten Quests für den Level-Up, steht dort „abgeben!“.
 - Im Tooltip jeder Zeile: EP, fehlende EP, Ruhe-EP, EP abgabebereiter Quests und aller Quests im Log, EP pro Stunde, Level-Up in … und nach den Abgaben.

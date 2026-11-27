@@ -9,6 +9,7 @@ assert(loadfile("GuideMap.lua"))("Syncline", ns)
 assert(loadfile("Theme.lua"))("Syncline", ns)
 assert(loadfile("Core.lua"))("Syncline", ns)
 assert(loadfile("XP.lua"))("Syncline", ns)
+assert(loadfile("Missing.lua"))("Syncline", ns)
 assert(loadfile("Slack.lua"))("Syncline", ns)
 assert(loadfile("GroupWindow.lua"))("Syncline", ns)
 assert(loadfile("Options.lua"))("Syncline", ns)
@@ -361,8 +362,6 @@ local asked = false for i = q0 + 1, #SENT do if SENT[i] == "Q^2" then asked = tr
 check(not asked, "no new question after a flicker")
 check(T.leaderGuide() and T.leaderGuide().id == D2, "still knows the leader's guide")
 STATE.me = "Leader"
-RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
-
 ---------------------------------------------------------------------------
 -- Classes: RestedXP leaves out steps for other classes, numbers differ, lines don't
 ---------------------------------------------------------------------------
@@ -453,6 +452,62 @@ if not ns.GroupWindow:IsShown() then SlashCmdList.SYNCLINE("") end
 ns.GroupWindow:Refresh(); RunTimers()
 check(TextShown("3 Folgequest(s)"), "window: skip check line")
 SlashCmdList.SYNCLINE("")   -- close again
+
+---------------------------------------------------------------------------
+-- Missing quests (same quest chain)
+---------------------------------------------------------------------------
+local Miss = ns.Missing
+Miss.HookAbandon()
+RXP.SetStep(2)                         -- "complete A" is next
+local list = Miss:Scan()
+check(#list == 1 and list[1].id == 100 and list[1].step == 2 and list[1].tag == "complete",
+      "A is needed but not in the log: " .. #list)
+ONQUEST[100] = true
+check(#Miss:Scan() == 0, "A in the log: nothing missing")
+ONQUEST[100] = nil; TURNEDIN[100] = true
+check(#Miss:Scan() == 0, "A turned in: nothing missing")
+TURNEDIN[100] = nil
+-- quests the guide picks up again later don't count (B, C, D and E are accepted ahead)
+RXP.SetStep(4); ONQUEST[101] = true
+check(#Miss:Scan() == 0, "B in the log, later quests are accepted later")
+-- told once in the chat, sent to the group
+ONQUEST[101] = nil
+local nlog = #LOG
+Miss:Update(); Miss:Update()
+local tells = 0 for i = nlog + 1, #LOG do if LOG[i]:find("braucht später noch", 1, true) then tells = tells + 1 end end
+check(tells == 1, "told once: " .. tells)
+check(logHas("Die Spur der Räuber"), "by name")
+check(lastSent("M^") == "M^2^1^101", "sent: " .. tostring(lastSent("M^")))
+-- abandoning a quest the guide still needs
+ONQUEST[101] = true; ABANDONING = 101
+local np = #POPUPS
+C_QuestLog.SetAbandonQuest()
+check(#POPUPS == np + 1 and POPUPS[#POPUPS].which == "SYNCLINE_ABANDON", "abandon warning")
+check(POPUPS[#POPUPS].text:find("Die Spur der Räuber", 1, true) and POPUPS[#POPUPS].text:find("Ziele bei Schritt 4", 1, true)
+      and POPUPS[#POPUPS].text:find("Abgabe bei Schritt 5", 1, true), "says where: " .. POPUPS[#POPUPS].text)
+-- a quest the guide picks up again before it needs it: no warning
+ABANDONING = 200; np = #POPUPS
+C_QuestLog.SetAbandonQuest()
+check(#POPUPS == np, "picked up again later: no warning")
+-- the guide itself says abandon: no warning
+chain.steps[4].elements[2] = { ids = { 101 }, text = "Abandon" }
+ABANDONING = 101; np = #POPUPS
+C_QuestLog.SetAbandonQuest()
+check(#POPUPS == np, "guide says abandon: no warning")
+chain.steps[4].elements[2] = nil
+-- the group: Bob misses two
+T.OnMessage("M^2^2^100,200", "Bob Beansen")
+local bc, bids = Miss:Get("Bob-Beansen")
+check(bc == 2 and bids[2] == 200, "Bob's missing quests")
+ONQUEST[101] = nil; Miss:Scan()
+if not ns.GroupWindow:IsShown() then SlashCmdList.SYNCLINE("") end
+ns.GroupWindow:Refresh()
+check(TextShown("FEHLENDE QUESTS") and TextShown("2: Ärger am Fluss, Kräuter sammeln"), "window card")
+SlashCmdList.SYNCLINE("")
+SlashCmdList.SYNCLINE("fehlend")
+check(logHas("1 Quest(s), die dein Guide noch braucht") and logHas("Die Spur der Räuber (Ziele bei Schritt 4)"), "/sl fehlend")
+ONQUEST[101] = true; Miss:Scan(); ABANDONING = nil
+
 RXP:LoadGuide(GUIDES["RestedXP Horde Magier AoE||12-17 Das Brachland AoE"]); RunTimers()
 
 ---------------------------------------------------------------------------

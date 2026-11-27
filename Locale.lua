@@ -33,6 +33,17 @@ L.MODE_ASK = "Ask before switching."
 L.CMD_OPTIONS = "options"
 L.CMD_SKIP, L.CMD_PULL = "skip", "pull"
 L.CMD_ROUTE = "route"
+L.CMD_MISSING = "missing"
+L.MISSING_TURNIN = "turn-in"
+L.MISSING_COMPLETE = "objectives"
+L.MISSING_ENTRY = "%s (%s at step %d)"
+L.MISSING_AT = "%s at step %d"
+L.MISSING_NEW = "Your guide still needs |cffffd100%s|r, but the quest is no longer in your log."
+L.MISSING_NONE = "No missing quests: your log has everything your guide still needs."
+L.MISSING_HEAD = "%d quest(s) your guide still needs, not in your log:"
+L.MISSING_TIP_HEAD = "%s is missing"
+L.MISSING_TIP_HINT = "The guide still wants these later. Pick them up again, or have someone share them."
+L.ABANDON_WARN = "Careful: your RestedXP guide still needs\n\n%s\n\nlater (%s). If you abandon it, it will be missing there."
 L.RISK_NONE = "no quest in it: safe to skip"
 L.RISK_SAFE = "safe to skip: no follow-up quests"
 L.RISK_FOLLOWUPS = "%d follow-up quest(s): %s"
@@ -69,6 +80,7 @@ L.HELP = {
     "|cffffd100/sl skip|r  leader: skip the step for everyone, others: ask the leader",
     "|cffffd100/sl pull|r  leader: everyone in the guide to my step",
     "|cffffd100/sl route|r  leader: send my RestedXP route settings (dungeons, ...) again",
+    "|cffffd100/sl missing|r  quests your guide still needs that aren't in your log",
     "|cffffd100/sl auto|r / |cffffd100ask|r  switch on my own / ask first",
     "|cffffd100/sl on|r / |cffffd100off|r  sync on or off",
 }
@@ -115,6 +127,17 @@ if GetLocale() == "deDE" then
     L.CMD_OPTIONS = "optionen"
     L.CMD_SKIP, L.CMD_PULL = "skippen", "herholen"
     L.CMD_ROUTE = "route"
+    L.CMD_MISSING = "fehlend"
+    L.MISSING_TURNIN = "Abgabe"
+    L.MISSING_COMPLETE = "Ziele"
+    L.MISSING_ENTRY = "%s (%s bei Schritt %d)"
+    L.MISSING_AT = "%s bei Schritt %d"
+    L.MISSING_NEW = "Dein Guide braucht später noch |cffffd100%s|r, die Quest ist aber nicht mehr in deinem Log."
+    L.MISSING_NONE = "Keine fehlenden Quests: Dein Log hat alles, was dein Guide noch braucht."
+    L.MISSING_HEAD = "%d Quest(s), die dein Guide noch braucht, fehlen im Log:"
+    L.MISSING_TIP_HEAD = "%s fehlen"
+    L.MISSING_TIP_HINT = "Der Guide will diese später noch. Neu annehmen oder von jemandem teilen lassen."
+    L.ABANDON_WARN = "Achtung: Dein RestedXP-Guide braucht\n\n%s\n\nspäter noch (%s). Wenn du sie abbrichst, fehlt sie dir dort."
     L.RISK_NONE = "keine Quest darin: sicher zu skippen"
     L.RISK_SAFE = "sicher zu skippen: keine Folgequests"
     L.RISK_FOLLOWUPS = "%d Folgequest(s): %s"
@@ -151,6 +174,7 @@ if GetLocale() == "deDE" then
         "|cffffd100/sl skippen|r  Leiter: Schritt für alle überspringen, sonst: beim Leiter anfragen",
         "|cffffd100/sl herholen|r  Leiter: alle im Guide zu meinem Schritt holen",
         "|cffffd100/sl route|r  Leiter: meine RestedXP-Routeneinstellungen (Dungeons, ...) nochmal senden",
+        "|cffffd100/sl fehlend|r  Quests, die dein Guide noch braucht, die aber nicht im Log sind",
         "|cffffd100/sl auto|r / |cffffd100fragen|r  selbst wechseln / vorher fragen",
         "|cffffd100/sl an|r / |cffffd100aus|r  Sync an oder aus",
     }
@@ -262,6 +286,10 @@ if GetLocale() == "deDE" then
         ["max level"] = "Höchststufe",
         ["Nobody sent experience yet (everyone needs Syncline)."] = "Noch keine EP-Daten (alle brauchen Syncline).",
         ["Experience overview of the group"] = "EP-Übersicht der Gruppe",
+        ["Missing quests"] = "Fehlende Quests",
+        ["Missing quests and abandon warning"] = "Fehlende Quests und Warnung beim Abbrechen",
+        ["Shows quests your RestedXP guide still wants you to complete or turn in later, but that are no longer in your quest log, and warns before you abandon one the guide still needs."] =
+            "Zeigt Quests, die dein RestedXP-Guide später noch erledigen oder abgeben will, die aber nicht mehr in deinem Questlog sind, und warnt, bevor du eine abbrichst, die der Guide noch braucht.",
         ["Snail of the session"] = "Schnecke der Session",
         ["Tourist"] = "Tourist",
         ["Flower picker"] = "Blumenpflücker",

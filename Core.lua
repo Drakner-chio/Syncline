@@ -44,6 +44,7 @@ local DEFAULTS = {
     shareRoute = true,     -- leader: send my route settings to the group
     slackMeter = true,     -- leader: who keeps the group waiting (Slack.lua)
     xpOverview = true,     -- experience of the group (XP.lua)
+    missingQuests = true,  -- quests the guide still needs but I don't have (Missing.lua)
     minimapButton = true,
     minimapAngle = 200,
     locked = false,        -- windows can't be dragged
@@ -74,6 +75,7 @@ local function Print(text, ...)
     if select("#", ...) > 0 then text = text:format(...) end
     print(CHAT_PREFIX .. text)
 end
+ns.Print = Print
 
 -- Runs fn after delay; another call with the same key replaces the waiting one
 local function Debounce(key, delay, fn)
@@ -439,6 +441,8 @@ local function QuestName(id)
     end
     return "#" .. id
 end
+
+ns.QuestName = QuestName
 
 local function Elements(step)
     return type(step) == "table" and (step.elements or step) or {}
@@ -1158,12 +1162,15 @@ local function HandleMessage(text, sender)
         Debounce("status", 1, SendStatus)
         Debounce("route", 1.2, function() SendRoute(IsLeader() and "W" or "V") end)
         Debounce("xp", 1.5, function() if ns.XP then ns.XP:Send() end end)
+        Debounce("missing", 1.8, function() if ns.Missing then ns.Missing:Send(true) end end)
     elseif kind == "S" then
         local st = Guide() or {}
         st.step, st.total, st.line = tonumber(f[6]), tonumber(f[7]), tonumber(f[8])
         st.route = statuses[who] and statuses[who].route
         statuses[who] = st
         Changed()
+    elseif kind == "M" then
+        if ns.Missing then ns.Missing:OnMessage(who, f) end
     elseif kind == "X" then
         if ns.XP then ns.XP:OnMessage(who, f) end
     elseif kind == "T" then
@@ -1376,6 +1383,8 @@ SlashCmdList.SYNCLINE = function(msg)
         ns.Actions.Suggest()
     elseif cmd == L.CMD_SKIP or cmd == "skip" then
         ns.Actions.RequestSkip()   -- leader: skips for the group, member: asks the leader
+    elseif cmd == L.CMD_MISSING or cmd == "missing" then
+        if ns.Missing then ns.Missing:PrintList() end
     elseif cmd == L.CMD_ROUTE or cmd == "route" then
         ns.Actions.SendRoute()
     elseif cmd == L.CMD_PULL or cmd == "pull" then
@@ -1421,6 +1430,7 @@ local function OnGroupChanged()
             leaderGuide, lastSent, lastAnnounced, pending = nil, nil, nil, nil
             leaderRoute, lastRouteSent = nil, nil
             if ns.XP then ns.XP:Forget() end
+            if ns.Missing then ns.Missing:Forget() end
             wipe(statuses)
             Changed()
         end)
@@ -1447,6 +1457,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
         if rxp.SetStep then
             hooksecurefunc(rxp, "SetStep", function()
                 Debounce("step", 1.5, SendStep)
+                if ns.Missing then ns.Missing.Soon() end
                 Changed()
             end)
         end

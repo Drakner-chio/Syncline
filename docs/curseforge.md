@@ -7,6 +7,7 @@
 - **The leader decides:** pick a guide in the RestedXP window as usual – it goes to the whole group. Whoever joins, logs in or reloads gets it too
 - **Any client language:** RestedXP names its guides differently in every language. Syncline knows they're the same guide – German, English, French, Spanish, Portuguese and Chinese clients play together
 - **Who is where:** the group window shows every player's step and how far ahead or behind the leader they are, plus the leader's step with its text
+- **Missing quests:** see which quests your guide still expects later but are no longer in your log – for you and for everyone in the group – and get a warning before you abandon one the guide still needs
 - **Experience overview:** level, experience, rested XP and the XP of quests ready to turn in for everyone in the group, plus XP per hour and time to the next level
 - **Skip for everyone:** the leader skips a step for the whole group with one click, or pulls everyone to his step
 - **Skip check:** before you skip, Syncline shows whether follow-up quests hang on the step – green: safe to skip, orange/red: these quests would be gone for the whole group
@@ -44,6 +45,7 @@ Made for **World of Warcraft: Forever**. English and German.
 | `/sl skip` | leader: skip the step for everyone · others: ask the leader |
 | `/sl pull` | (leader) everyone in the guide to your step |
 | `/sl route` | (leader) send your RestedXP route settings again |
+| `/sl missing` | quests your guide still needs that aren't in your log |
 | `/sl auto` / `ask` | switch right away / ask first |
 | `/sl on` / `off` | sync on or off |
 | `/sl options` | settings |

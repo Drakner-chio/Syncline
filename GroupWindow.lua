@@ -140,6 +140,7 @@ local function Build()
     Button("request", "Request skip", "Asks the leader to skip your current step for the whole group.",
         function() ns.Actions.RequestSkip() end, false)
 
+    if ns.Missing then ns.Missing:Attach(frame, PAD, cw) end
     if ns.XP then ns.XP:Attach(frame, PAD, cw) end
     if ns.Slack then ns.Slack:Attach(frame, PAD, cw) end
 
@@ -220,8 +221,11 @@ function W:Refresh()
 
     -- buttons: the leader skips, pulls and sends, members fetch, suggest, ask for a skip
     local top = 40 + GUIDE_H + 8
-    local xpH = ns.XP and ns.XP:Layout(-top - listH - 8, snap) or 0
+    local missH = ns.Missing and ns.Missing:Layout(-top - listH - 8, snap) or 0
+    if missH > 0 then missH = missH + 8 end
+    local xpH = ns.XP and ns.XP:Layout(-top - listH - missH - 8, snap) or 0
     if xpH > 0 then xpH = xpH + 8 end
+    xpH = xpH + missH
     local slackH = ns.Slack and ns.Slack:Layout(-top - listH - xpH - 8, snap) or 0
     if slackH > 0 then slackH = slackH + 8 end
     slackH = slackH + xpH

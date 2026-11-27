@@ -42,6 +42,7 @@ Von Hand: `python3 tools/build_guidemap.py <Pfad zu RXPGuides> > GuideMap.lua`
 | `/sl skippen` | Leiter: Schritt für alle überspringen, sonst beim Leiter anfragen |
 | `/sl herholen` | Leiter: alle im Guide zu meinem Schritt holen |
 | `/sl route` | Leiter: RestedXP-Routeneinstellungen (Dungeons, ...) nochmal senden |
+| `/sl fehlend` | Quests, die der Guide noch braucht, die aber nicht im Log sind |
 | `/sl auto` / `fragen` | sofort wechseln / vorher Popup |
 | `/sl an` / `aus` | Sync an/aus |
 | `/sl version` | eigene Version |

@@ -62,7 +62,7 @@ local function Build()
 
     -- General
     y = y - 138
-    local gen = T.Card(frame, "General", PAD, y, cw, 144)
+    local gen = T.Card(frame, "General", PAD, y, cw, 170)
     controls[#controls + 1] = T.Switch(gen, "Minimap button", 16, -34,
         function() return ns.db.minimapButton end,
         function(v) ns.db.minimapButton = v; ns.UpdateMinimapButton() end)
@@ -74,8 +74,13 @@ local function Build()
     controls[#controls + 1] = T.Switch(gen, "Experience overview of the group", 16, -86,
         function() return ns.db.xpOverview end,
         function(v) ns.db.xpOverview = v; ns.GroupWindow:Refresh() end)
+    controls[#controls + 1] = T.Switch(gen, "Missing quests and abandon warning", 16, -112,
+        function() return ns.db.missingQuests end,
+        function(v) ns.db.missingQuests = v; if ns.Missing then ns.Missing:Update() end; ns.GroupWindow:Refresh() end)
+    T.Tooltip(controls[#controls], "Missing quests",
+        "Shows quests your RestedXP guide still wants you to complete or turn in later, but that are no longer in your quest log, and warns before you abandon one the guide still needs.")
     local found = T.Text(gen, "", 11, C.faint, true)
-    found:SetPoint("TOPLEFT", 16, -116)
+    found:SetPoint("TOPLEFT", 16, -142)
     controls[#controls + 1] = { Refresh = function()
         local rxp = C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("RXPGuides")
         found:SetText(L["RestedXP Guides: %s"]:format(rxp and ("|cff5cd97a" .. L["found"] .. "|r")
@@ -86,7 +91,7 @@ local function Build()
     hint:SetText("/sl " .. L.CMD_OPTIONS .. "  ·  /sl " .. L.CMD_HELP .. "  ·  v" .. tostring(ns.VERSION))
     hint:SetPoint("BOTTOMLEFT", PAD + 2, 12)
 
-    frame:SetHeight(-y + 144 + 40)
+    frame:SetHeight(-y + 170 + 40)
     frame:SetScript("OnShow", function() O:Refresh() end)
 end
 

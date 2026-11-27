@@ -186,3 +186,11 @@ C_QuestLog = { GetNumQuestLogEntries = function() return #QUESTLOG end,
                GetInfo = function(i) return QUESTLOG[i] end,
                IsComplete = function(id) for _, q in ipairs(QUESTLOG) do if q.questID == id then return q.done end end end }
 function GetQuestLogRewardXP(id) for _, q in ipairs(QUESTLOG) do if q.questID == id then return q.xp end end return 0 end
+
+-- quest state for missing quests
+ONQUEST, TURNEDIN = {}, {}
+function RXP.IsOnQuest(id) return ONQUEST[id] end
+function RXP.IsQuestTurnedIn(id) return TURNEDIN[id] end
+ABANDONING = nil
+C_QuestLog.SetAbandonQuest = function() end
+C_QuestLog.GetAbandonQuest = function() return ABANDONING end

@@ -20,6 +20,7 @@ GuideMap.lua
 Theme.lua
 Core.lua
 XP.lua
+Missing.lua
 Slack.lua
 GroupWindow.lua
 Options.lua
