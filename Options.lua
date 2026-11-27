@@ -45,22 +45,31 @@ local function Build()
 
     -- Window
     y = y - 240
-    local win = T.Card(frame, "Group window", PAD, y, cw, 128)
+    local WIN_H = 236
+    local win = T.Card(frame, "Group window", PAD, y, cw, WIN_H)
     controls[#controls + 1] = T.Slider(win, "Size", 16, -30, cw - 32,
         function() return ns.db.windowScale end,
         function(v) ns.db.windowScale = v; ns.GroupWindow:ApplySettings() end,
         0.7, 1.5, 0.05, Percent)
-    controls[#controls + 1] = T.Switch(win, "Lock windows (no dragging)", 16, -72,
+    -- what the group window shows, as leader and as member
+    local bw = math.floor((cw - 32 - 18) / 4)
+    for i, role in ipairs({ "Leader", "Member" }) do
+        controls[#controls + 1] = T.Choice(win, role == "Leader" and "View as leader" or "View as member", 16, -72 - (i - 1) * 50,
+            ns.GroupWindow.VIEWS,
+            function() return ns.GroupWindow:View(role) end,
+            function(v) ns.GroupWindow:SetView(role, v) end, bw)
+    end
+    controls[#controls + 1] = T.Switch(win, "Lock windows (no dragging)", 16, -180,
         function() return ns.db.locked end, function(v) ns.db.locked = v end)
     local reset = T.FlatButton(win, "Reset window positions", 170, 22)
-    reset:SetPoint("TOPLEFT", 16, -96)
+    reset:SetPoint("TOPLEFT", 16, -204)
     reset:SetScript("OnClick", function()
         ns.db.groupPos, ns.db.optionsPos = nil, nil
         ns.GroupWindow:ApplySettings(true)
         frame:RestorePosition("CENTER", 0, 0)
     end)
 
-    local leftBottom = -y + 128   -- where the left column ends
+    local leftBottom = -y + WIN_H   -- where the left column ends
 
     -- right column: quest helpers and general
     local x2 = PAD + cw + PAD

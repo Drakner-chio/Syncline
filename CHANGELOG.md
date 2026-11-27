@@ -1,5 +1,13 @@
 # Syncline
 
+## 0.14.0
+- Neues Gruppenfenster: großer Guide-Name, Fortschrittsbalken mit einer Markierung pro Spieler (Leiter weiß, alle anderen in Klassenfarbe; Maus drüber zeigt, wer wo steht), Rolle oben rechts.
+- Ansichten, getrennt für Leiter und Mitglied: Komplett, Quests, Kompakt und Eigene. Umschalten über „Ansicht“ im Fensterkopf oder in den Einstellungen. Einen einzelnen Abschnitt an- oder ausschalten macht daraus die eigene Ansicht. Standard: Leiter Komplett, Mitglieder Kompakt.
+- „Gruppe auf einen Blick“ statt der vollen Liste in Quests und Kompakt: ein Punkt pro Spieler und nur das, was Aufmerksamkeit braucht (anderer Guide, hängt fest, Schritte zurück, andere Einstellungen, kein Syncline). Der Leiter sieht alle, ein Mitglied nur sich selbst.
+- Karten klappen mit einem Klick auf den Titel ein und bleiben so.
+- Mitgliederliste mit Spaltenköpfen, Klassenfarben-Streifen, Krone für den Leiter, eigene Zeile hervorgehoben, offline sichtbar.
+- Knöpfe passend zur Lage: in Kompakt/Quests als Mitglied nur „Skip anfragen“ oder „Guide holen“, als Leiter „Guide senden“ nur, wenn jemand in einem anderen Guide ist.
+
 ## 0.13.0
 - Questfortschritt der Gruppe: Für die Quests im aktuellen Schritt zeigt das Gruppenfenster den Fortschritt aller, z. B. „Bob 8/8 · Dani 6/8 · Fluffy 3/8“. Sind alle fertig, meldet Syncline „Alle sind fertig mit … – ab zur Abgabe!“ mit Ton.
 - Annahme-Check: Wer eine Quest nicht angenommen hat, die der Guide vor kurzem (bis 15 Schritte zurück) annehmen ließ, bekommt sofort einen roten Hinweis mit Ton. Der Leiter erfährt es einmal im Chat, im Fenster steht „nicht angenommen: …“ in Rot.

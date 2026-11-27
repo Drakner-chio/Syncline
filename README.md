@@ -19,7 +19,8 @@ The CurseForge description lives in [`docs/curseforge.md`](docs/curseforge.md).
 - Nothing switches in combat: it waits until combat ends. Switch right away or get asked first – your choice.
 
 **Steps**
-- The group window shows every player's step and how far ahead or behind the leader they are, plus the leader's step with its text.
+- The group window shows every player's step and how far ahead or behind the leader they are, plus the leader's step with its text. A progress bar marks where everyone is in the guide.
+- Views for the group window, set separately for leading and for being a member: **Full**, **Quests** (overview plus quest helpers), **Compact** (overview, quest progress, hearthstone, missing quests) or **Custom**. The compact overview shows a dot per player and only what needs attention: the leader sees everyone's problems, a member only their own. A click on a card's title folds it; buttons show only what fits right now.
 - The leader skips a step for the whole group, or pulls everyone to his step. Members ask the leader for a skip.
 - Skip check: before a skip, Syncline shows whether follow-up quests hang on the step (green: safe, orange/red: these quests would be gone) and asks the leader once more.
 - Why can't I do this step? A missing prerequisite, your level, an overleveled or grey quest, a quest already turned in, a full quest log, a quest not in your log or objectives still open. You see your own reason, and the group sees who is stuck and why.

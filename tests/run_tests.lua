@@ -811,10 +811,53 @@ T.OnMessage("S^2^" .. D1 .. "^" .. EN .. "^01-06 Durotar", "Bob-Beansen"); RunTi
 check(TextShown("anderer Guide: 01-06 Durotar"), "window updates")
 T.OnMessage("S^2^" .. MAGE .. "^^^1^20", "Bob-Beansen"); RunTimers()
 check(TextShown("Einstellungen anders"), "same guide, other settings: marked")
+
+-- views of the group window
+local GW = ns.GroupWindow
+local function CardOf(key) for _, c in ipairs(GW.cards) do if c.key == key then return c.card end end end
+check(GW:View("Leader") == "full" and GW:View("Member") == "compact", "default views")
+check(GW.frames.members:IsShown() and not GW.frames.summary:IsShown(), "full: the member list")
+check(TextShown("Ansicht: Komplett"), "view button")
+GW:SetView("Leader", "compact")
+check(GW.frames.summary:IsShown() and not GW.frames.members:IsShown(), "compact: the overview instead of the list")
+check(TextShown("GRUPPE AUF EINEN BLICK") and TextShown("Bob|r: ") and TextShown("Einstellungen anders"), "overview names Bob's problem")
+check(not CardOf("xp"):IsShown(), "compact: no experience card")
+check(GW.buttons.skip:IsShown() and not GW.buttons.send:IsShown(), "compact leader: skip and pull, no send when nobody strayed")
+check(TextShown("Ansicht: Kompakt"), "view button follows")
+-- one section on: custom, starting from compact
+GW:SetSection("Leader", "xp", true)
+check(GW:View("Leader") == "custom" and GW:Shows("xp", "Leader") and GW:Shows("summary", "Leader")
+    and not GW:Shows("members", "Leader"), "custom view from compact")
+check(GW:View("Member") == "compact", "member view untouched")
+-- the menu
+GW:ToggleMenu()
+check(TextShown("ANSICHT ALS LEITER") and TextShown("Mitgliederliste"), "view menu")
+GW:ToggleMenu()
+-- fold a card
+GW:Fold("summary", true)
+check(GW.frames.summary.sign:GetText() == "+" and GW:IsFolded("summary"), "folded")
+GW:Fold("summary", false)
+check(GW.frames.summary.sign:GetText() == "–", "unfolded")
+GW:SetView("Leader", "full")
+check(GW.frames.members:IsShown() and GW.buttons.send:IsShown(), "back to full")
+-- members: only what fits right now, only their own problems
+local B = GW:Buttons({ inGroup = true, isLeader = false, target = "X", inTarget = true, members = {} })
+check(#B == 1 and B[1] == "request", "member in the guide: request skip")
+B = GW:Buttons({ inGroup = true, isLeader = false, target = "X", inTarget = false, members = {} })
+check(B[1] == "get" and B[2] == "suggest", "member elsewhere: get guide")
+local iss = GW:Issues({ inGroup = true, isLeader = false, members = {
+    { name = "Me", me = true, state = "same", diff = -3 },
+    { name = "Bob", state = "other", guide = "Y" } } })
+check(#iss == 1 and iss[1].text:find("du bist 3 Schritt(e) hinter dem Leiter", 1, true), "member sees only their own: " .. tostring(iss[1] and iss[1].text))
+iss = GW:Issues({ inGroup = true, isLeader = true, members = {
+    { name = "Leader", me = true, lead = true, state = "same" },
+    { name = "Bob", state = "other", guide = "Y" }, { name = "Dani", state = "same", diff = -2 } } })
+check(#iss == 2 and iss[1].text:find("anderer Guide: Y", 1, true) and iss[2].text:find("2 Schritt(e) zurück", 1, true), "leader sees everyone's, worst first")
 ns.HandleClick("LeftButton")
 check(not SynclineGroupFrame:IsShown(), "left click closes it again")
 ns.HandleClick("RightButton")
 check(SynclineOptionsFrame:IsShown(), "right click: settings")
+check(TextShown("Ansicht als Mitglied") and TextShown("Kompakt"), "views in the settings")
 check(TextShown("Dem Guide des Gruppenleiters folgen"), "settings in German")
 check(TextShown("|cff5cd97agefunden"), "RestedXP found")
 SlashCmdList.SYNCLINE("minimap aus")

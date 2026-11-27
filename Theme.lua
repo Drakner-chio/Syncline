@@ -306,6 +306,7 @@ function T.Card(parent, title, x, y, w, h)
     mark:SetColorTexture(unpack(C.accent))
     local t = T.Caption(f, title)
     t:SetPoint("TOPLEFT", 20, -10)
+    f.caption, f.mark = t, mark
     return f
 end
 

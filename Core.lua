@@ -56,6 +56,8 @@ local DEFAULTS = {
     minimapAngle = 200,
     locked = false,        -- windows can't be dragged
     windowScale = 1,       -- size of the group window
+    viewLeader = "full",   -- what the group window shows to the leader: full, quests, compact, custom
+    viewMember = "compact",-- ... and to members
 }
 
 local db
