@@ -1,5 +1,10 @@
 # Syncline
 
+## 0.15.0
+- Syncline-Leiste am RestedXP-Fenster: hängt direkt unter (oder über) dem Guidefenster, genauso breit, wandert, skaliert und verschwindet mit ihm. Funktioniert mit dem klassischen RestedXP-Fenster und der neuen V2-Oberfläche.
+- Zeilen: Gruppe auf einen Blick (mit den wichtigsten Problemen), Gruppenschritt, Questfortschritt, nicht angenommene und fehlende Quests, Ruhestein und Flugpunkte, Quests teilen (Klick teilt), Erfahrung, Bummel-Meter, dazu kleine Knöpfe (Skip / Zu mir bzw. Skip anfragen / Guide holen). Jede Zeile erscheint nur, wenn sie etwas zu sagen hat.
+- Welche Zeilen sie zeigt, stellt das Zahnrad auf der Leiste ein, dazu Position Auto/Unten/Oben. Auto setzt die Leiste nach oben, wenn RestedXP nach oben wächst. An- und abschalten in den Einstellungen unter „Am RestedXP-Fenster“. Ein Klick auf den Kopf öffnet das Gruppenfenster.
+
 ## 0.14.0
 - Neues Gruppenfenster: großer Guide-Name, Fortschrittsbalken mit einer Markierung pro Spieler (Leiter weiß, alle anderen in Klassenfarbe; Maus drüber zeigt, wer wo steht), Rolle oben rechts.
 - Ansichten, getrennt für Leiter und Mitglied: Komplett, Quests, Kompakt und Eigene. Umschalten über „Ansicht“ im Fensterkopf oder in den Einstellungen. Einen einzelnen Abschnitt an- oder ausschalten macht daraus die eigene Ansicht. Standard: Leiter Komplett, Mitglieder Kompakt.

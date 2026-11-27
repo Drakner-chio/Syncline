@@ -58,6 +58,8 @@ local DEFAULTS = {
     windowScale = 1,       -- size of the group window
     viewLeader = "full",   -- what the group window shows to the leader: full, quests, compact, custom
     viewMember = "compact",-- ... and to members
+    dock = true,           -- a strip with Syncline's info at the RestedXP window (Dock.lua)
+    dockSide = "auto",     -- below/above it; auto: above when RestedXP grows upwards
 }
 
 local db
@@ -99,6 +101,7 @@ end
 local function Changed()
     Debounce("ui", 0.1, function()
         if ns.GroupWindow then ns.GroupWindow:Refresh() end
+        if ns.Dock then ns.Dock:Refresh() end
     end)
 end
 ns.Changed = Changed

@@ -27,4 +27,5 @@ Progress.lua
 Travel.lua
 Slack.lua
 GroupWindow.lua
+Dock.lua
 Options.lua

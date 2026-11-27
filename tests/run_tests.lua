@@ -16,6 +16,7 @@ assert(loadfile("Progress.lua"))("Syncline", ns)
 assert(loadfile("Travel.lua"))("Syncline", ns)
 assert(loadfile("Slack.lua"))("Syncline", ns)
 assert(loadfile("GroupWindow.lua"))("Syncline", ns)
+assert(loadfile("Dock.lua"))("Syncline", ns)
 assert(loadfile("Options.lua"))("Syncline", ns)
 local T = ns.test
 local D1, D2 = "forever/Horde-01-12_Durotar.lua#1", "forever/Horde-01-12_Durotar.lua#2"
@@ -853,11 +854,47 @@ iss = GW:Issues({ inGroup = true, isLeader = true, members = {
     { name = "Leader", me = true, lead = true, state = "same" },
     { name = "Bob", state = "other", guide = "Y" }, { name = "Dani", state = "same", diff = -2 } } })
 check(#iss == 2 and iss[1].text:find("anderer Guide: Y", 1, true) and iss[2].text:find("2 Schritt(e) zurück", 1, true), "leader sees everyone's, worst first")
+
+-- the strip at the RestedXP window
+local Dk = ns.Dock
+Dk:Refresh()
+check(not (SynclineDock and SynclineDock:IsShown()), "no RestedXP window, no strip")
+RXPFrame = CreateFrame("Frame", "RXPFrame")
+Dk:Refresh()
+check(SynclineDock:IsShown() and Dk:Anchor() == RXPFrame, "docked to the classic window")
+check(Dk:Side() == "below", "below by default")
+local prof = RXP.settings.profile
+RXP.settings.profile = { anchorOrientation = "bottom" }
+check(Dk:Side() == "above", "above when RestedXP grows upwards")
+ns.db.dockSide = "below"; check(Dk:Side() == "below", "set by hand"); ns.db.dockSide = "auto"
+RXP.settings.profile = prof
+local v2frame = CreateFrame("Frame")
+RXP.v2 = { IsEnabled = function() return true end, GetGuideWindowAnchorFrame = function() return v2frame end }
+check(Dk:Anchor() == v2frame, "the V2 window when it's on")
+RXP.v2.IsEnabled = function() return false end
+check(Dk:Anchor() == RXPFrame, "classic window when V2 is off")
+RXP.v2 = nil
+local function DockText() local t = {} for _, l in ipairs(Dk.shown) do t[#t + 1] = l.text end return table.concat(t, "\n") end
+Dk:Refresh()
+check(DockText():find("Bob|r: ", 1, true) and DockText():find("Schritt(e) zurück", 1, true), "group line with Bob's problem: " .. DockText())
+check(TextShown("SYNCLINE") and TextShown("12-17 Das Brachland AoE"), "strip header with the guide")
+check(Dk.buttons.skip:IsShown() and Dk.buttons.pull:IsShown() and not Dk.buttons.request:IsShown(), "leader buttons on the strip")
+Dk:SetLine("group", false)
+check(not DockText():find("Bob|r: ", 1, true), "group line off")
+Dk:SetLine("group", true)
+Dk:ToggleMenu()
+check(TextShown("Fehlende und nicht angenommene Quests") and TextShown("ZEILEN"), "strip menu")
+Dk:ToggleMenu()
+ns.db.dock = false; Dk:Refresh()
+check(not SynclineDock:IsShown(), "strip switched off")
+ns.db.dock = true; Dk:Refresh()
+check(SynclineDock:IsShown(), "and on again")
 ns.HandleClick("LeftButton")
 check(not SynclineGroupFrame:IsShown(), "left click closes it again")
 ns.HandleClick("RightButton")
 check(SynclineOptionsFrame:IsShown(), "right click: settings")
 check(TextShown("Ansicht als Mitglied") and TextShown("Kompakt"), "views in the settings")
+check(TextShown("Syncline-Leiste am RestedXP-Fenster zeigen"), "strip in the settings")
 check(TextShown("Dem Guide des Gruppenleiters folgen"), "settings in German")
 check(TextShown("|cff5cd97agefunden"), "RestedXP found")
 SlashCmdList.SYNCLINE("minimap aus")
