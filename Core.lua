@@ -60,6 +60,7 @@ local DEFAULTS = {
     viewMember = "compact",-- ... and to members
     dock = true,           -- a strip with Syncline's info at the RestedXP window (Dock.lua)
     dockSide = "auto",     -- below/above it; auto: above when RestedXP grows upwards
+    dockMode = "dock",     -- the strip: docked to the guide window, or "free" (a window of its own)
     dockStyle = "auto",    -- the strip's look: auto (EllesmereUI's when it's there) or syncline
 }
 

@@ -71,18 +71,22 @@ local function Build()
 
     -- the strip at the RestedXP window
     y = y - WIN_H - 10
-    local DOCK_H = 132
+    local DOCK_H = 184
     local dockCard = T.Card(frame, "At the RestedXP window", PAD, y, cw, DOCK_H)
     controls[#controls + 1] = T.Switch(dockCard, "Show a Syncline strip at the RestedXP window", 16, -34,
         function() return ns.db.dock end, function(v) ns.db.dock = v; if ns.Dock then ns.Dock:Refresh() end end)
     T.Tooltip(controls[#controls], "At the RestedXP window",
-        "A strip right under the RestedXP guide window with the group, quest progress, quests not accepted, hearthstone and buttons. It moves and hides with RestedXP. Which lines it shows: the cog on the strip.")
+        "A strip right under the RestedXP guide window with the group, quest progress, quests not accepted, hearthstone and buttons. It moves and hides with RestedXP, or stands on its own as a window. It takes the look of your skin (EllesmereUI, ElvUI, RestedXP's theme). Which lines it shows: the cog on the strip.")
     controls[#controls + 1] = T.Choice(dockCard, "Position", 16, -62,
         { { "auto", "Auto" }, { "below", "Below" }, { "above", "Above" } },
         function() return ns.db.dockSide or "auto" end,
         function(v) ns.db.dockSide = v; if ns.Dock then ns.Dock:Refresh() end end, 90)
+    controls[#controls + 1] = T.Choice(dockCard, "Mode", 16, -112,
+        { { "dock", "Docked" }, { "free", "Own window" } },
+        function() return ns.db.dockMode == "free" and "free" or "dock" end,
+        function(v) ns.db.dockMode = v; if ns.Dock then ns.Dock:Refresh() end end, 140)
     local dockNote = T.Text(dockCard, "Which lines show: the cog on the strip.", 11, C.faint)
-    dockNote:SetPoint("TOPLEFT", 16, -112)
+    dockNote:SetPoint("TOPLEFT", 16, -162)
     local leftBottom = -y + DOCK_H   -- where the left column ends
 
     -- right column: quest helpers and general

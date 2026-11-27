@@ -389,8 +389,13 @@ if GetLocale() == "deDE" then
         ["Group at a glance"] = "Gruppe auf einen Blick",
         ["At the RestedXP window"] = "Am RestedXP-Fenster",
         ["Show a Syncline strip at the RestedXP window"] = "Syncline-Leiste am RestedXP-Fenster zeigen",
-        ["A strip right under the RestedXP guide window with the group, quest progress, quests not accepted, hearthstone and buttons. It moves and hides with RestedXP. Which lines it shows: the cog on the strip."] =
-            "Eine Leiste direkt am RestedXP-Guidefenster mit Gruppe, Questfortschritt, nicht angenommenen Quests, Ruhestein und Knöpfen. Sie wandert und verschwindet mit RestedXP. Welche Zeilen sie zeigt: Zahnrad auf der Leiste.",
+        ["A strip right under the RestedXP guide window with the group, quest progress, quests not accepted, hearthstone and buttons. It moves and hides with RestedXP, or stands on its own as a window. It takes the look of your skin (EllesmereUI, ElvUI, RestedXP's theme). Which lines it shows: the cog on the strip."] =
+            "Eine Leiste direkt am RestedXP-Guidefenster mit Gruppe, Questfortschritt, nicht angenommenen Quests, Ruhestein und Knöpfen. Sie wandert und verschwindet mit RestedXP oder steht als eigenes Fenster. Sie übernimmt den Look deines Skins (EllesmereUI, ElvUI, RestedXP-Theme). Welche Zeilen sie zeigt: Zahnrad auf der Leiste.",
+        ["Mode"] = "Modus",
+        ["Docked"] = "Angedockt",
+        ["Own window"] = "Eigenes Fenster",
+        ["Width (own window)"] = "Breite (eigenes Fenster)",
+        ["Opens the group window. As a window of its own: drag it here."] = "Öffnet das Gruppenfenster. Als eigenes Fenster: hier ziehen zum Verschieben.",
         ["Which lines show: the cog on the strip."] = "Welche Zeilen sie zeigt: Zahnrad auf der Leiste.",
         ["Position"] = "Position",
         ["Auto"] = "Auto",

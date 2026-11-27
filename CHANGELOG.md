@@ -1,5 +1,10 @@
 # Syncline
 
+## 0.17.0
+- Die Leiste erkennt RestedXP-Skins allgemein: Macht ein Skin das RestedXP-Fenster unsichtbar und zeichnet ein eigenes, dockt sie an dessen Fenster. Bekannt: EUI-RestedXP, FUI-RestedXP, BeautifulRestedXP; dazu jeder Skin, dessen Fenster an RestedXP hängt (so arbeitet auch LiteTweaks). Hängt das Skin-Fenster an seiner Unterkante, sitzt die Leiste oben. Skins, die das RestedXP-Fenster nur umfärben (ElvUI-Art), brauchen nichts.
+- Eigenes Fenster: Im Zahnrad-Menü bzw. den Einstellungen „Modus: Eigenes Fenster“. Die Leiste steht dann frei, ist am Kopf verschiebbar und in der Breite einstellbar. Ohne RestedXP-Fenster wird sie automatisch zum eigenen Fenster.
+- Look folgt dem Skin, angedockt wie frei: EllesmereUI (mit den Kartenwerten von EUI-RestedXP), ElvUI (Schrift, Hintergrund, Rand, Wertefarbe), sonst das aktive RestedXP-Theme (Hintergrund, Akzent, Schrift; auch Themes, die Skin-Addons bei RestedXP anmelden). „Aussehen: Syncline“ schaltet auf den eigenen Look.
+
 ## 0.16.0
 - Leiste am RestedXP-Fenster arbeitet mit EUI-RestedXP zusammen: Ist dessen Umbau aktiv (Frameless, Timeline, Compact, Zygor, 8-Bit, Rail), dockt sie an das EUI-Fenster statt an das unsichtbare RestedXP-Fenster darunter. Sie erbt Skalierung und Ausblenden bei Inaktivität und sitzt unter den Ziel- und Item-Boxen, die EUI unter sein Fenster klebt. Wächst EUI nach oben, sitzt sie oben.
 - EllesmereUI-Look, sobald EllesmereUI läuft: dessen Schrift mit Kontur, die dunkle Schrittkarte mit hauchdünnem Rand (Deckkraft aus deinen EUI-Einstellungen), „SYNCLINE“ in der Farbe von „STEP 1“, Knöpfe in der EUI-Akzentfarbe. Im Zahnrad-Menü unter „Aussehen“ auf „Syncline“ umstellbar.

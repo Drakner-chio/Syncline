@@ -858,8 +858,8 @@ check(#iss == 2 and iss[1].text:find("anderer Guide: Y", 1, true) and iss[2].tex
 -- the strip at the RestedXP window
 local Dk = ns.Dock
 Dk:Refresh()
-check(not (SynclineDock and SynclineDock:IsShown()), "no RestedXP window, no strip")
-RXPFrame = CreateFrame("Frame", "RXPFrame")
+check(SynclineDock:IsShown() and Dk.free, "no RestedXP window at all: a window of its own")
+RXPFrame = CreateFrame("Frame", "RXPFrame"); RXPFrame:Show()
 Dk:Refresh()
 check(SynclineDock:IsShown() and Dk:Anchor() == RXPFrame, "docked to the classic window")
 check(Dk:Side() == "below", "below by default")
@@ -912,10 +912,38 @@ ns.db.dockStyle = "syncline"; Dk:Refresh()
 check(not Dk.style.eui and type(Dk.buttons.skip.accentColor) ~= "table", "own look on request")
 ns.db.dockStyle = "auto"
 EUIRestedxPCache.rxpLayout = "DEFAULT"
+RXPFrame.GetAlpha = nil   -- EUI gives RestedXP its window back
 check(Dk:Anchor() == RXPFrame, "EUI on RestedXP's own window: dock to that")
 EUIRestedXPTimeline = nil; RXPTargetFrame = nil; EllesmereUI = nil; EUIRestedxPCache = nil
-RXPFrame.GetAlpha = nil
+-- a skin we don't know: RestedXP's window invisible, another one hangs on it
+function RXPFrame:GetAlpha() return 0 end
+local other = CreateFrame("Frame", "SomeSkinWindow"); other:Show()
+function other:GetNumPoints() return 1 end
+function other:GetPoint() return "BOTTOMLEFT", RXPFrame, "BOTTOMLEFT", 0, 0 end
+function other:GetWidth() return 240 end
+UIParent.GetChildren = function() return Dk.frame, other end
+check(Dk:Anchor() == other, "found the unknown skin's window")
+check(Dk:Side() == "above", "it hangs by its bottom edge: strip on top")
+RXPFrame.GetAlpha = nil; UIParent.GetChildren = nil
+-- looks: ElvUI, then RestedXP's theme, else ours
+ElvUI = { { media = { normFont = "Fonts\\Elv.ttf", rgbvaluecolor = { r = 1, g = 0.5, b = 0 },
+                      backdropfadecolor = { r = 0.1, g = 0.1, b = 0.1, a = 0.8 }, bordercolor = { 0, 0, 0 } } } }
+check(Dk:Style().kind == "elvui" and Dk:Style().font == "Fonts\\Elv.ttf" and Dk:Style().accent[2] == 0.5, "ElvUI look")
+ElvUI = nil
+RXP.activeTheme = { background = { 0.05, 0.05, 0.1, 1 }, mapPins = { 0.8, 0.4, 1, 1 }, font = "Fonts\\RXP.ttf" }
+local rs = Dk:Style()
+check(rs.kind == "rxp" and rs.font == "Fonts\\RXP.ttf" and rs.accent[1] == 0.8 and rs.bg[4] == 0.92, "RestedXP theme look")
+RXP.activeTheme = nil
+check(Dk:Style().kind == "syncline", "own look without any skin")
+-- a window of its own, in the skin's colors
+ns.db.dockMode = "free"; ns.db.dockWidth = 300
+RXP.activeTheme = { background = { 0.05, 0.05, 0.1, 1 }, mapPins = { 0.8, 0.4, 1, 1 } }
 Dk:Refresh()
+check(Dk.free and SynclineDock:IsShown() and Dk.style.kind == "rxp", "own window, skin look")
+check(Dk.buttons.skip.accentColor[1] == 0.8, "buttons in the theme's accent")
+ns.db.dockMode = "dock"; RXP.activeTheme = nil
+Dk:Refresh()
+check(not Dk.free, "docked again")
 ns.HandleClick("LeftButton")
 check(not SynclineGroupFrame:IsShown(), "left click closes it again")
 ns.HandleClick("RightButton")

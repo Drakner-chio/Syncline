@@ -57,31 +57,84 @@ function D:SetLine(key, on)
 end
 
 ---------------------------------------------------------------------------
--- Where to dock: the V2 window when it's on, else the classic one
+-- Where to dock. RestedXP's own window (classic or V2), unless a skin addon
+-- made it invisible and draws its own: then the visible window that hangs
+-- on RestedXP's. That covers EUI-RestedXP, FUI-RestedXP, BeautifulRestedXP
+-- and LiteTweaks' reskin (one engine family), and skins we don't know yet.
+-- Skins that only repaint RestedXP's window (ElvUI-style) need nothing.
 ---------------------------------------------------------------------------
 local function RXP()
     return ns.Missing and ns.Missing.RXP and ns.Missing.RXP()
 end
 
--- EUI-RestedXP's own window, when it is what's on screen
 local function EUIDB() return type(_G.EUIRestedxPCache) == "table" and _G.EUIRestedxPCache or nil end
-function D:EUIWindow()
-    local w, rxpf = _G.EUIRestedXPTimeline, _G.RXPFrame
-    if not (w and w.IsShown and w:IsShown()) then return nil end
+local function Num(v) return type(v) == "number" and v or nil end
+local function Visible(f)
+    if not (f and f.IsShown and f:IsShown()) then return false end
+    local a = f.GetAlpha and Num(f:GetAlpha())
+    return not (a and a <= 0)
+end
+
+-- skin windows we know by name (checked first, cheap)
+D.KNOWN = { "EUIRestedXPTimeline", "FUIRestedXPTimeline", "BeautifulRestedXPTimeline" }
+
+local found, nextScan = nil, 0
+local function HangsOn(f, target)
+    if not (f and f.GetNumPoints) then return nil end
+    local ok, n = pcall(f.GetNumPoints, f)
+    if not ok or type(n) ~= "number" then return nil end
+    for i = 1, n do
+        local ok2, point, rel = pcall(f.GetPoint, f, i)
+        if ok2 and rel == target then return point end
+    end
+end
+
+-- the skin's window, when RestedXP's own is there but invisible
+function D:SkinWindow()
+    local rxpf = _G.RXPFrame
+    if not (rxpf and rxpf.IsShown and rxpf:IsShown()) then return nil end
+    local a = rxpf.GetAlpha and Num(rxpf:GetAlpha())
+    if not (a and a <= 0) then return nil end
     local db = EUIDB()
     if db and (db.rxpEnabled == false or db.rxpLayout == "DEFAULT") then return nil end
-    if rxpf and rxpf.GetAlpha and rxpf:GetAlpha() ~= 0 then return nil end
-    return w
+    for _, name in ipairs(D.KNOWN) do
+        if Visible(_G[name]) then return _G[name] end
+    end
+    if found and Visible(found) and HangsOn(found, rxpf) then return found end
+    found = nil
+    -- look for it now and then: a shown frame anchored to RestedXP's window
+    local now = GetTime and GetTime() or 0
+    if now < nextScan then return nil end
+    nextScan = now + 10
+    local ok, kids = pcall(function() return { UIParent:GetChildren() } end)
+    if not ok then return nil end
+    for _, f in ipairs(kids) do
+        -- forbidden and protected frames can refuse to be asked: skip them
+        local ok2, hit = pcall(function()
+            if f == D.frame or (f.IsForbidden and f:IsForbidden()) then return false end
+            if not (Visible(f) and HangsOn(f, rxpf)) then return false end
+            local w = f.GetWidth and Num(f:GetWidth())
+            return w and w > 80
+        end)
+        if ok2 and hit then found = f; return f end
+    end
 end
+D.EUIWindow = D.SkinWindow   -- older name
+
+-- does the skin's window grow upwards (pinned by its bottom edge)?
 local FLIP = { FRAMELESS = true, TIMELINE = true, RAIL = true, COMPACT = true }
-local function EUIFlip()
+local function SkinFlip(w)
     local db = EUIDB()
-    return db and db.rxpFlip == true and FLIP[db.rxpLayout or "FRAMELESS"] and true or false
+    if db and w == _G.EUIRestedXPTimeline then
+        return db.rxpFlip == true and FLIP[db.rxpLayout or "FRAMELESS"] and true or false
+    end
+    local point = HangsOn(w, _G.RXPFrame)
+    return type(point) == "string" and point:find("^BOTTOM") ~= nil
 end
 
 function D:Anchor()
-    local eui = D:EUIWindow()
-    if eui then return eui end
+    local skin = D:SkinWindow()
+    if skin then return skin end
     local rxp = RXP()
     local v2 = rxp and rxp.v2
     if v2 and v2.IsEnabled and v2.GetGuideWindowAnchorFrame then
@@ -91,29 +144,45 @@ function D:Anchor()
             if ok2 and f then return f end
         end
     end
-    return _G.RXPFrame
+    local f = _G.RXPFrame
+    if f and Visible(f) then return f end
+    return nil
+end
+
+-- "dock": hangs on the guide window; "free": a window of its own. Docked
+-- without a guide window to hang on, it is free too.
+function D:Mode()
+    return (ns.db and ns.db.dockMode == "free") and "free" or "dock"
 end
 
 -- "below" or "above": RestedXP windows that grow upwards get the strip on top
 function D:Side()
     local side = ns.db and ns.db.dockSide or "auto"
     if side == "below" or side == "above" then return side end
-    if D:EUIWindow() then return EUIFlip() and "above" or "below" end
+    local skin = D:SkinWindow()
+    if skin then return SkinFlip(skin) and "above" or "below" end
     local rxp = RXP()
     local p = rxp and rxp.settings and rxp.settings.profile
     return (p and p.anchorOrientation == "bottom") and "above" or "below"
 end
 
 ---------------------------------------------------------------------------
--- The look: ours, or EllesmereUI's when it's there
+-- The look. Auto takes, in this order: EllesmereUI (with EUI-RestedXP's
+-- card settings), ElvUI, RestedXP's active theme (which skin addons can
+-- register too), else ours.
 ---------------------------------------------------------------------------
-function D:Style()
-    local mode = ns.db and ns.db.dockStyle or "auto"
-    local E = _G.EllesmereUI
-    if mode == "syncline" or not E then
-        return { eui = false, font = T.FONT, flags = "", size = 11, label = C.muted,
-                 bg = C.win, edge = C.edge }
-    end
+local function RGBA(c, a)
+    if type(c) ~= "table" then return nil end
+    local r, g, b = c.r or c[1], c.g or c[2], c.b or c[3]
+    if type(r) ~= "number" then return nil end
+    return { r, g, b, a or c.a or c[4] or 1 }
+end
+
+local function OwnStyle()
+    return { kind = "syncline", font = T.FONT, flags = "", size = 11, label = C.muted, bg = C.win, edge = C.edge }
+end
+
+local function EUIStyle(E)
     local font
     if type(E.GetFontPath) == "function" then
         local ok, p = pcall(E.GetFontPath, nil)
@@ -121,15 +190,54 @@ function D:Style()
     end
     font = font or "Interface\\AddOns\\EUI-RestedXP\\Fonts\\Expressway.ttf"
     local db = EUIDB() or {}
-    local g = E.ELLESMERE_GREEN
-    local accent = g and { g.r or 0.05, g.g or 0.82, g.b or 0.62, 1 } or { 0.05, 0.82, 0.62, 1 }
     return {
-        eui = true, font = font, flags = "OUTLINE", size = db.rxpFlTextSize or 12,
+        kind = "eui", eui = true, font = font, flags = "OUTLINE", size = db.rxpFlTextSize or 12,
         label = { db.rxpFlStepColR or 0.91, db.rxpFlStepColG or 0.64, db.rxpFlStepColB or 0.24 },
         bg = { 0, 0, 0, (db.rxpFlCardA or 65) / 100 },
         edge = { db.rxpFlBorderR or 1, db.rxpFlBorderG or 1, db.rxpFlBorderB or 1, db.rxpFlBorderA or 0.07 },
+        accent = RGBA(E.ELLESMERE_GREEN) or { 0.05, 0.82, 0.62, 1 },
+    }
+end
+
+local function ElvStyle()
+    local ok, E = pcall(function() return unpack(_G.ElvUI) end)
+    local m = ok and type(E) == "table" and E.media
+    if type(m) ~= "table" then return nil end
+    local accent = RGBA(m.rgbvaluecolor)
+    return {
+        kind = "elvui", font = type(m.normFont) == "string" and m.normFont or T.FONT, flags = "", size = 12,
+        label = accent or C.muted,
+        bg = RGBA(m.backdropfadecolor) or RGBA(m.backdropcolor, 0.85) or C.win,
+        edge = RGBA(m.bordercolor) or C.edge,
         accent = accent,
     }
+end
+
+local function RXPStyle()
+    local rxp = RXP()
+    local th = rxp and (rxp.activeTheme or rxp.colors)
+    if type(th) ~= "table" or type(th.background) ~= "table" then return nil end
+    local accent = RGBA(th.mapPins, 1) or RGBA(th.bottomFrameHighlight, 1)
+    local bg = RGBA(th.background, 0.92)
+    return {
+        kind = "rxp", font = (type(th.font) == "string" and th.font) or (type(rxp.font) == "string" and rxp.font) or T.FONT,
+        flags = "", size = 12,
+        label = accent or C.muted,
+        bg = bg or C.win,
+        edge = accent and { accent[1], accent[2], accent[3], 0.35 } or C.edge,
+        accent = accent,
+    }
+end
+
+function D:Style()
+    local mode = ns.db and ns.db.dockStyle or "auto"
+    if mode == "syncline" then return OwnStyle() end
+    if _G.EllesmereUI then return EUIStyle(_G.EllesmereUI) end
+    if type(_G.ElvUI) == "table" then
+        local st = ElvStyle()
+        if st then return st end
+    end
+    return RXPStyle() or OwnStyle()
 end
 
 local function SetFont(fs, st, size)
@@ -335,12 +443,20 @@ local function BuildMenu()
         function() return ns.db.dockSide or "auto" end,
         function(v) ns.db.dockSide = v; D:Refresh() end, 66)
     menu.side = side
+    local mode = T.Choice(menu, "Mode", 14, y - 104,
+        { { "dock", "Docked" }, { "free", "Own window" } },
+        function() return D:Mode() end,
+        function(v) ns.db.dockMode = v; D:Refresh(); D:ToggleMenu(); D:ToggleMenu() end, 100)
+    menu.mode = mode
+    menu.width = T.Slider(menu, "Width (own window)", 14, y - 154, 212,
+        function() return ns.db.dockWidth or 260 end,
+        function(v) ns.db.dockWidth = v; D:Refresh() end, 200, 420, 10)
     local look = T.Choice(menu, "Look", 14, y - 54,
         { { "auto", "Auto" }, { "syncline", "Syncline" } },
         function() return ns.db.dockStyle or "auto" end,
         function(v) ns.db.dockStyle = v; D:Refresh() end, 100)
     menu.look = look
-    menu:SetSize(240, -y + 110)
+    menu:SetSize(240, -y + 200)
     menu:Hide()
 end
 
@@ -349,12 +465,14 @@ function D:ToggleMenu()
     if not menu then BuildMenu() end
     if menu:IsShown() then menu:Hide(); return end
     menu:ClearAllPoints()
-    if D:Side() == "above" then menu:SetPoint("BOTTOMLEFT", dock, "BOTTOMRIGHT", 4, 0)
+    if not D.free and D:Side() == "above" then menu:SetPoint("BOTTOMLEFT", dock, "BOTTOMRIGHT", 4, 0)
     else menu:SetPoint("TOPLEFT", dock, "TOPRIGHT", 4, 0) end
     menu:Show()
     for _, sw in ipairs(menu.switches) do sw:Refresh() end
     menu.side.Refresh()
     menu.look.Refresh()
+    menu.mode.Refresh()
+    menu.width.Refresh()
 end
 
 local function Build()
@@ -379,7 +497,19 @@ local function Build()
     header.title:SetPoint("RIGHT", 0, 0)
     header.title:SetWordWrap(false)
     header:SetScript("OnClick", function() ns.GroupWindow:Toggle() end)
-    T.Tooltip(header, "Syncline", "Opens the group window.")
+    T.Tooltip(header, "Syncline", "Opens the group window. As a window of its own: drag it here.")
+    header:RegisterForDrag("LeftButton")
+    header:SetScript("OnDragStart", function()
+        if not D.free or (ns.db and ns.db.locked) then return end
+        dock:SetMovable(true)
+        dock:StartMoving()
+    end)
+    header:SetScript("OnDragStop", function()
+        if not D.free then return end
+        dock:StopMovingOrSizing()
+        local point, _, rel, x, y = dock:GetPoint()
+        ns.db.dockPos = { point, rel, x, y }
+    end)
 
     local cog = CreateFrame("Button", nil, dock)
     cog:SetSize(18, 18)
@@ -405,7 +535,7 @@ end
 -- what the strip hangs from: the window itself, or with EUI the lowest
 -- (highest when it grows upwards) of RestedXP's boxes it glued to the window
 local function Holder(a, side)
-    if a ~= D:EUIWindow() then return a end
+    if a ~= D:SkinWindow() then return a end
     local db = EUIDB()
     if db and db.rxpBoxLock == false then return a end   -- boxes placed freely
     local best = a
@@ -434,6 +564,8 @@ local function Dock()
         if InCombatLockdown and InCombatLockdown() and holder ~= a then holder = dock.holder or a end
         anchorFrame, dock.holder, dock.side = a, holder, side
         dock:SetParent(a)          -- moves, scales, fades and hides with it
+        dock:SetScale(1)
+        if dock.SetClampedToScreen then dock:SetClampedToScreen(false) end
         dock:SetFrameStrata(a.GetFrameStrata and a:GetFrameStrata() or "MEDIUM")
         dock:ClearAllPoints()
         if holder == a then
@@ -464,10 +596,38 @@ local function Dock()
     return a
 end
 
+-- a window of its own: where it was dragged to, as wide as set
+local function Free()
+    if anchorFrame ~= "free" then
+        anchorFrame, dock.holder, dock.side = "free", nil, nil
+        dock:SetParent(UIParent)
+        dock:SetFrameStrata("MEDIUM")
+        if dock.SetClampedToScreen then dock:SetClampedToScreen(true) end
+        dock:ClearAllPoints()
+        local p = ns.db.dockPos
+        if type(p) == "table" and p[1] then
+            dock:SetPoint(p[1], UIParent, p[2] or p[1], p[3] or 0, p[4] or 0)
+        else
+            dock:SetPoint("LEFT", UIParent, "LEFT", 24, 140)
+        end
+    end
+    dock:SetWidth(ns.db.dockWidth or 260)
+    dock:SetScale(math.max(0.5, math.min(2, ns.db.windowScale or 1)))
+    return true
+end
+
+-- docked, or free: by choice, or because there's no RestedXP window at all
+local function Place()
+    if D:Mode() == "free" then D.free = Free(); return true end
+    if Dock() then D.free = false; return true end
+    if not _G.RXPFrame then D.free = Free(); return true end
+    return false   -- RestedXP's window is hidden right now: so are we
+end
+
 function D:Refresh()
     if not dock then Build() end
     local snap = ns.Snapshot and ns.Snapshot()
-    if not (D:Enabled() and snap and snap.inGroup and Dock()) then
+    if not (D:Enabled() and snap and snap.inGroup and Place()) then
         dock:Hide()
         if menu then menu:Hide() end
         return
@@ -516,7 +676,7 @@ function D:Refresh()
             local bw = (w - 16 - 4 * (n - 1)) / n
             for i, key in ipairs(row) do
                 local b = btns[key]
-                b:SetAccent(st.eui and st.accent or nil)
+                b:SetAccent(st.accent)
                 if b.GetFontString and b:GetFontString() then SetFont(b:GetFontString(), st, st.eui and (st.size - 1) or 12) end
                 b:ClearAllPoints()
                 b:SetPoint("TOPLEFT", 8 + (i - 1) * (bw + 4), y - 3)
